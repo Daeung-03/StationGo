@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const KAKAO_MAP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY
@@ -451,6 +451,7 @@ function KakaoMetroMap({
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const overlaysRef = useRef([])
+  const lastMousePos = useRef({ clientX: 0, clientY: 0 })
   const [loadState, setLoadState] = useState(KAKAO_MAP_KEY ? 'loading' : 'missing')
 
   useEffect(() => {
@@ -489,20 +490,25 @@ function KakaoMetroMap({
 
     const kakao = window.kakao
     const map = mapRef.current
-    const syntheticEvent = (mouseEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect()
-      const point = mouseEvent?.point
-      return {
-        clientX: (rect?.left || 0) + (point?.x || (rect?.width || 0) / 2),
-        clientY: (rect?.top || 0) + (point?.y || (rect?.height || 0) / 2),
-      }
-    }
 
     overlaysRef.current.forEach((overlay) => overlay.setMap(null))
     overlaysRef.current = []
 
+    // Native mouse tracking on the map container — gives accurate cursor coords for tooltip
+    const container = containerRef.current
+    const onNativeMove = (e) => {
+      lastMousePos.current = { clientX: e.clientX, clientY: e.clientY }
+      onTooltipMove({ clientX: e.clientX, clientY: e.clientY })
+    }
+    const onNativeLeave = () => onTooltipHide()
+    container.addEventListener('mousemove', onNativeMove)
+    container.addEventListener('mouseleave', onNativeLeave)
+
     // 1×1 transparent GIF — universally supported by Kakao Maps for custom marker images
     const TRANSPARENT = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+    // Map of stationId → {station, globalRank} for mouseover lookup
+    const stationInfoMap = {}
 
     stationMetrics.forEach((station) => {
       const position = new kakao.maps.LatLng(station.lat, station.lng)
@@ -514,7 +520,9 @@ function KakaoMetroMap({
       const color = LINE_COLORS[station.lines[0]] || '#3B6DFF'
       const circleRadius = Math.max(450, radius * 32)
 
-      // Visual circle (hover events work on Circle)
+      if (station.visible) stationInfoMap[station.id] = { station, globalRank }
+
+      // Visual circle
       const circle = new kakao.maps.Circle({
         center: position,
         fillColor: selected ? '#FF4757' : inPage ? '#3B6DFF' : station.visible ? color : '#CBD5E1',
@@ -526,15 +534,9 @@ function KakaoMetroMap({
         strokeWeight: 3,
         zIndex: selected ? 10 : inPage ? 8 : 5,
       })
-
-      if (station.visible) {
-        kakao.maps.event.addListener(circle, 'mouseover', (mouseEvent) => onTooltipShow(syntheticEvent(mouseEvent), station, globalRank))
-        kakao.maps.event.addListener(circle, 'mousemove', (mouseEvent) => onTooltipMove(syntheticEvent(mouseEvent)))
-        kakao.maps.event.addListener(circle, 'mouseout', onTooltipHide)
-      }
       overlaysRef.current.push(circle)
 
-      // Invisible marker on top — Markers reliably fire click events in Kakao Maps
+      // Invisible marker — click only (hover is handled by native DOM events above)
       if (station.visible) {
         const hitSize = Math.max(44, Math.round(radius * 2))
         const markerImage = new kakao.maps.MarkerImage(
@@ -543,10 +545,13 @@ function KakaoMetroMap({
           { offset: new kakao.maps.Point(hitSize / 2, hitSize / 2) },
         )
         const hitMarker = new kakao.maps.Marker({ image: markerImage, map, position, zIndex: 20 })
-        kakao.maps.event.addListener(hitMarker, 'click', () => {
-          console.log('[click] hitMarker click:', station.id)
-          onStationClick(station.id)
+        kakao.maps.event.addListener(hitMarker, 'click', () => onStationClick(station.id))
+        // Hover via Kakao Maps (for enter/leave) — position from last known cursor position
+        kakao.maps.event.addListener(hitMarker, 'mouseover', () => {
+          const info = stationInfoMap[station.id]
+          if (info) onTooltipShow(lastMousePos.current, info.station, info.globalRank)
         })
+        kakao.maps.event.addListener(hitMarker, 'mouseout', onTooltipHide)
         overlaysRef.current.push(hitMarker)
       }
 
@@ -578,6 +583,8 @@ function KakaoMetroMap({
     return () => {
       overlaysRef.current.forEach((overlay) => overlay.setMap(null))
       overlaysRef.current = []
+      container.removeEventListener('mousemove', onNativeMove)
+      container.removeEventListener('mouseleave', onNativeLeave)
     }
   }, [
     loadState,
@@ -639,7 +646,7 @@ function App() {
   const { metricMap, ranked, scoreMap, stationMetrics } = useMemo(() => getRankedStations(advanced, weights, filters), [advanced, filters, weights])
   const pageCount = Math.max(1, Math.ceil(ranked.length / 3))
   const safeRankPage = Math.min(rankPage, pageCount - 1)
-  const pageStations = ranked.slice(safeRankPage * 3, safeRankPage * 3 + 3)
+  const pageStations = useMemo(() => ranked.slice(safeRankPage * 3, safeRankPage * 3 + 3), [ranked, safeRankPage])
   const selectedStation = metricMap[selectedStationId]?.visible ? metricMap[selectedStationId] : null
 
   const updateTimeRange = (index, value) => {
@@ -724,12 +731,22 @@ function App() {
     if (advanced) setRankPage(0)
   }
 
-  const handleStationClick = (stationId) => {
+  const handleStationClick = useCallback((stationId) => {
     const station = metricMap[stationId]
     if (!station?.visible) return
     setSelectedStationId((current) => (current === stationId ? null : stationId))
     setTooltip(null)
-  }
+  }, [metricMap])
+
+  const handleTooltipShow = useCallback((event, station, rank) => {
+    setTooltip({ station, rank, x: event.clientX, y: event.clientY })
+  }, [])
+
+  const handleTooltipMove = useCallback((event) => {
+    setTooltip((current) => (current ? { ...current, x: event.clientX, y: event.clientY } : current))
+  }, [])
+
+  const handleTooltipHide = useCallback(() => setTooltip(null), [])
 
   const handleRankNav = (direction) => {
     setRankPage((current) => Math.max(0, Math.min(pageCount - 1, current + direction)))
@@ -771,9 +788,9 @@ function App() {
           advanced={advanced}
           onRankNav={handleRankNav}
           onStationClick={handleStationClick}
-          onTooltipHide={() => setTooltip(null)}
-          onTooltipMove={(event) => setTooltip((current) => (current ? { ...current, x: event.clientX, y: event.clientY } : current))}
-          onTooltipShow={(event, station, rank) => setTooltip({ station, rank, x: event.clientX, y: event.clientY })}
+          onTooltipHide={handleTooltipHide}
+          onTooltipMove={handleTooltipMove}
+          onTooltipShow={handleTooltipShow}
           pageCount={pageCount}
           pageStations={pageStations}
           rankPage={safeRankPage}
@@ -1068,7 +1085,7 @@ function MapPanel({
   selectedStationId,
   stationMetrics,
 }) {
-  const pageIds = pageStations.map((station) => station.id)
+  const pageIds = useMemo(() => pageStations.map((station) => station.id), [pageStations])
   const rankStart = ranked.length ? rankPage * 3 + 1 : 0
   const rankEnd = ranked.length ? Math.min(rankStart + 2, ranked.length) : 0
 

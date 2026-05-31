@@ -672,6 +672,7 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
 
 .mapc {
   flex: 1;
+  min-width: 0;
   position: relative;
   background: #F2F5FC;
   overflow: hidden;
