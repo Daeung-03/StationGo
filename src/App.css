@@ -725,6 +725,38 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   filter: drop-shadow(0 4px 12px rgba(255, 71, 87, .35));
 }
 
+.kakao-station-dot {
+  border-radius: 50%;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.kakao-station-dot:hover {
+  transform: scale(1.22);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.38);
+  z-index: 200;
+}
+
+.kakao-station-dot.selected {
+  box-shadow: 0 0 0 4px rgba(255, 71, 87, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.kakao-station-dot.in-page {
+  box-shadow: 0 0 0 3px rgba(59, 109, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.kakao-station-dot.faded {
+  opacity: 0.22;
+  cursor: default !important;
+  pointer-events: none !important;
+  border-color: #CBD5E1;
+  box-shadow: none;
+}
+
 .leaflet-tooltip {
   border: 0;
   box-shadow: none;

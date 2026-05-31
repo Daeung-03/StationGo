@@ -1,6 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip as LeafletTooltip } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const KAKAO_MAP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY
@@ -283,184 +281,6 @@ const STATIONS = [
   },
 ]
 
-const MAP_PROVIDERS = [
-  {
-    description: 'No key required; reliable for development.',
-    key: 'osm',
-    label: 'OpenStreetMap',
-    needsKey: false,
-  },
-  {
-    description: 'Korea-native base map; needs Kakao JavaScript key.',
-    key: 'kakao',
-    label: 'Kakao Maps',
-    needsKey: true,
-  },
-  {
-    description: 'Korea-native base map; needs Naver Cloud Maps key.',
-    key: 'naver',
-    label: 'Naver Maps',
-    needsKey: true,
-  },
-  {
-    description: 'Can show Google transit layer; needs Google Maps API key.',
-    key: 'google',
-    label: 'Google Transit',
-    needsKey: true,
-  },
-]
-
-const GEOGRAPHIC_METRO_LINES = [
-  {
-    line: '1호선',
-    positions: [
-      [37.508725, 126.891295],
-      [37.515504, 126.907628],
-      [37.517983, 126.917614],
-      [37.528936, 126.932673],
-      [37.529849, 126.964561],
-      [37.554648, 126.972559],
-      [37.565715, 126.977088],
-      [37.570161, 126.982923],
-      [37.57042, 126.992144],
-      [37.57142, 127.009745],
-    ],
-  },
-  {
-    line: '2호선',
-    positions: [
-      [37.549463, 126.913739],
-      [37.557192, 126.925381],
-      [37.555134, 126.936893],
-      [37.556733, 126.946013],
-      [37.563588, 126.975411],
-      [37.566014, 126.982618],
-      [37.566295, 126.99191],
-      [37.566612, 127.009054],
-      [37.561159, 127.036877],
-      [37.544581, 127.055961],
-      [37.540373, 127.069191],
-      [37.537077, 127.085916],
-      [37.513262, 127.100159],
-      [37.511687, 127.086162],
-      [37.504503, 127.049008],
-      [37.497175, 127.027926],
-      [37.497952, 127.027619],
-      [37.491897, 127.007917],
-      [37.47653, 126.981685],
-      [37.481426, 126.952281],
-      [37.484201, 126.929715],
-      [37.493243, 126.894932],
-      [37.508725, 126.891295],
-      [37.517983, 126.917614],
-      [37.533877, 126.902011],
-      [37.549463, 126.913739],
-    ],
-  },
-  {
-    line: '3호선',
-    positions: [
-      [37.576477, 126.985443],
-      [37.57042, 126.992144],
-      [37.55434, 127.010655],
-      [37.548034, 127.015872],
-      [37.527381, 127.028513],
-      [37.504503, 127.049008],
-      [37.493415, 127.01408],
-    ],
-  },
-  {
-    line: '4호선',
-    positions: [
-      [37.656274, 127.063089],
-      [37.636352, 127.025735],
-      [37.570926, 127.009545],
-      [37.558514, 127.005315],
-      [37.554648, 126.972559],
-      [37.534488, 126.994302],
-      [37.47653, 126.981685],
-    ],
-  },
-  {
-    line: '5호선',
-    positions: [
-      [37.57142, 126.97674],
-      [37.566295, 126.99191],
-      [37.57042, 126.992144],
-      [37.557322, 127.029476],
-      [37.540373, 127.069191],
-      [37.526376, 127.087663],
-      [37.517409, 127.112359],
-    ],
-  },
-  {
-    line: '6호선',
-    positions: [
-      [37.549463, 126.913739],
-      [37.539574, 126.961339],
-      [37.534488, 126.994302],
-      [37.55434, 127.010655],
-      [37.548034, 127.015872],
-    ],
-  },
-  {
-    line: '7호선',
-    positions: [
-      [37.49297, 126.895801],
-      [37.484201, 126.929715],
-      [37.486263, 126.982649],
-      [37.504503, 127.049008],
-      [37.540693, 127.07023],
-    ],
-  },
-  {
-    line: '8호선',
-    positions: [
-      [37.517409, 127.112359],
-      [37.513262, 127.100159],
-      [37.505401, 127.106946],
-      [37.478703, 127.126191],
-    ],
-  },
-  {
-    line: '9호선',
-    positions: [
-      [37.533877, 126.902011],
-      [37.516781, 126.917841],
-      [37.51336, 126.928246],
-      [37.505098, 126.961374],
-      [37.504503, 127.049008],
-      [37.511687, 127.086162],
-    ],
-  },
-  {
-    line: '신분당선',
-    positions: [
-      [37.497952, 127.027619],
-      [37.486839, 127.033194],
-      [37.470023, 127.03842],
-      [37.443581, 127.033573],
-    ],
-  },
-  {
-    line: '경의중앙선',
-    positions: [
-      [37.557192, 126.925381],
-      [37.559778, 126.942325],
-      [37.529849, 126.964561],
-      [37.561159, 127.036877],
-    ],
-  },
-  {
-    line: '공항철도',
-    positions: [
-      [37.557192, 126.925381],
-      [37.554648, 126.972559],
-      [37.542955, 126.951869],
-      [37.447464, 126.452508],
-    ],
-  },
-]
 
 const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선', '9호선']
 const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권']
@@ -592,25 +412,16 @@ function getRadius(station, stationMetrics, scoreMap) {
 }
 
 function loadKakaoMaps(appKey) {
-  if (window.kakao?.maps) return Promise.resolve(window.kakao)
+  if (window.kakao?.maps?.Map) return Promise.resolve(window.kakao)
   if (window.kakaoMapsPromise) return window.kakaoMapsPromise
 
   window.kakaoMapsPromise = new Promise((resolve, reject) => {
-    const existingScript = document.getElementById('kakao-map-sdk')
-
     const boot = () => {
       if (!window.kakao?.maps) {
         reject(new Error('Kakao Maps SDK failed to load.'))
         return
       }
-
       window.kakao.maps.load(() => resolve(window.kakao))
-    }
-
-    if (existingScript) {
-      existingScript.addEventListener('load', boot, { once: true })
-      existingScript.addEventListener('error', () => reject(new Error('Kakao Maps SDK failed to load.')), { once: true })
-      return
     }
 
     const script = document.createElement('script')
@@ -663,7 +474,8 @@ function KakaoMetroMap({
 
         setLoadState('ready')
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('[KakaoMaps] init error:', err)
         if (!cancelled) setLoadState('error')
       })
 
@@ -689,30 +501,8 @@ function KakaoMetroMap({
     overlaysRef.current.forEach((overlay) => overlay.setMap(null))
     overlaysRef.current = []
 
-    GEOGRAPHIC_METRO_LINES.forEach((path) => {
-      const lineVisible = stationMetrics.some((station) => station.visible && station.lines.includes(path.line))
-      const route = path.positions.map(([lat, lng]) => new kakao.maps.LatLng(lat, lng))
-      const casing = new kakao.maps.Polyline({
-        endArrow: false,
-        map,
-        path: route,
-        strokeColor: '#ffffff',
-        strokeOpacity: lineVisible ? 0.88 : 0.1,
-        strokeStyle: 'solid',
-        strokeWeight: lineVisible ? 8 : 5,
-      })
-      const rail = new kakao.maps.Polyline({
-        endArrow: false,
-        map,
-        path: route,
-        strokeColor: LINE_COLORS[path.line] || '#64748B',
-        strokeOpacity: lineVisible ? 0.78 : 0.1,
-        strokeStyle: 'solid',
-        strokeWeight: lineVisible ? 4 : 2,
-      })
-
-      overlaysRef.current.push(casing, rail)
-    })
+    // 1×1 transparent GIF — universally supported by Kakao Maps for custom marker images
+    const TRANSPARENT = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
     stationMetrics.forEach((station) => {
       const position = new kakao.maps.LatLng(station.lat, station.lng)
@@ -721,25 +511,44 @@ function KakaoMetroMap({
       const inPage = pageIds.includes(station.id)
       const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
       const localRank = pageIds.indexOf(station.id) + 1
+      const color = LINE_COLORS[station.lines[0]] || '#3B6DFF'
+      const circleRadius = Math.max(450, radius * 32)
 
-      const marker = new kakao.maps.Circle({
+      // Visual circle (hover events work on Circle)
+      const circle = new kakao.maps.Circle({
         center: position,
-        fillColor: selected ? '#FF4757' : inPage ? '#3B6DFF' : '#ffffff',
-        fillOpacity: station.visible ? selected ? 0.94 : inPage ? 0.82 : 0.72 : 0.16,
+        fillColor: selected ? '#FF4757' : inPage ? '#3B6DFF' : station.visible ? color : '#CBD5E1',
+        fillOpacity: station.visible ? (selected ? 0.95 : inPage ? 0.90 : 0.85) : 0.18,
         map,
-        radius: Math.max(34, radius * 6),
-        strokeColor: selected ? '#FF4757' : station.visible ? LINE_COLORS[station.lines[0]] || '#3B6DFF' : '#CBD5E1',
-        strokeOpacity: station.visible ? 1 : 0.2,
-        strokeWeight: selected || inPage ? 3 : 2,
+        radius: circleRadius,
+        strokeColor: '#ffffff',
+        strokeOpacity: station.visible ? 0.9 : 0.2,
+        strokeWeight: 3,
+        zIndex: selected ? 10 : inPage ? 8 : 5,
       })
 
-      kakao.maps.event.addListener(marker, 'click', () => onStationClick(station.id))
-      kakao.maps.event.addListener(marker, 'mouseover', (mouseEvent) => {
-        if (station.visible) onTooltipShow(syntheticEvent(mouseEvent), station, globalRank)
-      })
-      kakao.maps.event.addListener(marker, 'mousemove', (mouseEvent) => onTooltipMove(syntheticEvent(mouseEvent)))
-      kakao.maps.event.addListener(marker, 'mouseout', onTooltipHide)
-      overlaysRef.current.push(marker)
+      if (station.visible) {
+        kakao.maps.event.addListener(circle, 'mouseover', (mouseEvent) => onTooltipShow(syntheticEvent(mouseEvent), station, globalRank))
+        kakao.maps.event.addListener(circle, 'mousemove', (mouseEvent) => onTooltipMove(syntheticEvent(mouseEvent)))
+        kakao.maps.event.addListener(circle, 'mouseout', onTooltipHide)
+      }
+      overlaysRef.current.push(circle)
+
+      // Invisible marker on top — Markers reliably fire click events in Kakao Maps
+      if (station.visible) {
+        const hitSize = Math.max(44, Math.round(radius * 2))
+        const markerImage = new kakao.maps.MarkerImage(
+          TRANSPARENT,
+          new kakao.maps.Size(hitSize, hitSize),
+          { offset: new kakao.maps.Point(hitSize / 2, hitSize / 2) },
+        )
+        const hitMarker = new kakao.maps.Marker({ image: markerImage, map, position, zIndex: 20 })
+        kakao.maps.event.addListener(hitMarker, 'click', () => {
+          console.log('[click] hitMarker click:', station.id)
+          onStationClick(station.id)
+        })
+        overlaysRef.current.push(hitMarker)
+      }
 
       if (station.visible) {
         const label = new kakao.maps.CustomOverlay({
@@ -813,7 +622,6 @@ function App() {
   const [transfer, setTransfer] = useState('전체')
   const [activeTypes, setActiveTypes] = useState(() => new Set(USER_TYPES))
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
-  const [mapProvider, setMapProvider] = useState('osm')
   const [selectedPreset, setSelectedPreset] = useState(null)
   const [weights, setWeights] = useState(initialWeights)
   const [simTab, setSimTab] = useState(0)
@@ -941,11 +749,9 @@ function App() {
           activeLines={activeLines}
           activeTypes={activeTypes}
           boarding={boarding}
-          mapProvider={mapProvider}
           onAdvancedToggle={toggleAdvanced}
           onBoardingChange={updateChoice(setBoarding)}
           onLineToggle={toggleLine}
-          onMapProviderChange={setMapProvider}
           onPassengerRangeChange={updatePassengerRange}
           onPresetChange={applyPreset}
           onTimeRangeChange={updateTimeRange}
@@ -963,7 +769,6 @@ function App() {
         />
         <MapPanel
           advanced={advanced}
-          mapProvider={mapProvider}
           onRankNav={handleRankNav}
           onStationClick={handleStationClick}
           onTooltipHide={() => setTooltip(null)}
@@ -1016,11 +821,9 @@ function Sidebar({
   activeLines,
   activeTypes,
   boarding,
-  mapProvider,
   onAdvancedToggle,
   onBoardingChange,
   onLineToggle,
-  onMapProviderChange,
   onPassengerRangeChange,
   onPresetChange,
   onTimeRangeChange,
@@ -1092,22 +895,6 @@ function Sidebar({
 
         <ChoiceSection label="승 / 하차" onChange={onBoardingChange} options={['전체', '승차', '하차']} value={boarding} />
         <ChoiceSection label="환승역" onChange={onTransferChange} options={['전체', '환승역만', '비환승']} value={transfer} />
-
-        <div className="fsec">
-          <div className="flabel">지도 인터페이스</div>
-          <div className="map-provider-list">
-            {MAP_PROVIDERS.map((provider) => (
-              <button
-                className={`map-provider ${mapProvider === provider.key ? 'on' : ''}`}
-                key={provider.key}
-                onClick={() => onMapProviderChange(provider.key)}
-              >
-                <span className="mp-name">{provider.label}</span>
-                <span className="mp-desc">{provider.needsKey ? 'API key 필요' : '바로 사용 가능'}</span>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div className="fsec">
           <div className="flabel">호선</div>
@@ -1268,7 +1055,6 @@ function AdvancedOverlay({ advanced, onWeightChange, weights }) {
 
 function MapPanel({
   advanced,
-  mapProvider,
   onRankNav,
   onStationClick,
   onTooltipHide,
@@ -1285,7 +1071,6 @@ function MapPanel({
   const pageIds = pageStations.map((station) => station.id)
   const rankStart = ranked.length ? rankPage * 3 + 1 : 0
   const rankEnd = ranked.length ? Math.min(rankStart + 2, ranked.length) : 0
-  const selectedProvider = MAP_PROVIDERS.find((provider) => provider.key === mapProvider) || MAP_PROVIDERS[0]
 
   return (
     <main className="mapc internet-mapc">
@@ -1304,130 +1089,18 @@ function MapPanel({
         </div>
       </div>
 
-      {mapProvider === 'osm' ? (
-        <MapContainer
-          center={[37.535, 126.99]}
-          className="internet-map"
-          maxZoom={16}
-          minZoom={10}
-          scrollWheelZoom
-          zoom={12}
-          zoomControl
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
-          {GEOGRAPHIC_METRO_LINES.map((path) => {
-            const lineVisible = stationMetrics.some((station) => station.visible && station.lines.includes(path.line))
-            return (
-              <Fragment key={path.line}>
-                <Polyline
-                  pathOptions={{
-                    className: lineVisible ? 'internet-metro-casing' : 'internet-metro-casing muted',
-                    color: '#ffffff',
-                    opacity: lineVisible ? 0.86 : 0.08,
-                    weight: lineVisible ? 8 : 5,
-                  }}
-                  positions={path.positions}
-                />
-                <Polyline
-                  pathOptions={{
-                    className: lineVisible ? 'internet-metro-line' : 'internet-metro-line muted',
-                    color: LINE_COLORS[path.line] || '#64748B',
-                    opacity: lineVisible ? 0.78 : 0.1,
-                    weight: lineVisible ? 4 : 2.5,
-                  }}
-                  positions={path.positions}
-                />
-              </Fragment>
-            )
-          })}
-          {stationMetrics.map((station) => {
-            const radius = getRadius(station, stationMetrics, scoreMap)
-            const selected = selectedStationId === station.id
-            const inPage = pageIds.includes(station.id)
-            const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
-            const localRank = pageIds.indexOf(station.id) + 1
-            return (
-              <Fragment key={station.id}>
-                <CircleMarker
-                  center={[station.lat, station.lng]}
-                  eventHandlers={{
-                    click: () => onStationClick(station.id),
-                    mousemove: (event) => onTooltipMove(event.originalEvent),
-                    mouseout: onTooltipHide,
-                    mouseover: (event) => station.visible && onTooltipShow(event.originalEvent, station, globalRank),
-                  }}
-                  pathOptions={{
-                    className: selected ? 'internet-station-marker selected' : 'internet-station-marker',
-                    color: selected ? '#FF4757' : station.visible ? LINE_COLORS[station.lines[0]] || '#3B6DFF' : '#CBD5E1',
-                    fillColor: selected ? '#FF4757' : inPage ? '#3B6DFF' : '#fff',
-                    fillOpacity: station.visible ? selected ? 0.94 : inPage ? 0.82 : 0.72 : 0.16,
-                    opacity: station.visible ? 1 : 0.2,
-                    weight: selected || inPage ? 3 : 2,
-                  }}
-                  radius={Math.max(5, radius)}
-                >
-                  {station.visible && (
-                    <LeafletTooltip direction="bottom" offset={[0, radius + 5]} opacity={1} permanent>
-                      <span className={selected ? 'map-station-label selected' : 'map-station-label'}>{station.name}</span>
-                    </LeafletTooltip>
-                  )}
-                </CircleMarker>
-                {inPage && !selected && (
-                  <CircleMarker
-                    center={[station.lat + 0.0022, station.lng + 0.0024]}
-                    interactive={false}
-                    pathOptions={{
-                      color: '#fff',
-                      fillColor: RANK_DOT_COLORS[localRank - 1] || '#9CA3AF',
-                      fillOpacity: 1,
-                      opacity: 1,
-                      weight: 2,
-                    }}
-                    radius={9}
-                  >
-                    <LeafletTooltip className="rank-badge-tip" direction="center" opacity={1} permanent>
-                      <span className="rank-badge">{rankPage * 3 + localRank}</span>
-                    </LeafletTooltip>
-                  </CircleMarker>
-                )}
-              </Fragment>
-            )
-          })}
-        </MapContainer>
-      ) : mapProvider === 'kakao' ? (
-        <KakaoMetroMap
-          onStationClick={onStationClick}
-          onTooltipHide={onTooltipHide}
-          onTooltipMove={onTooltipMove}
-          onTooltipShow={onTooltipShow}
-          pageIds={pageIds}
-          rankPage={rankPage}
-          ranked={ranked}
-          scoreMap={scoreMap}
-          selectedStationId={selectedStationId}
-          stationMetrics={stationMetrics}
-        />
-      ) : (
-        <div className="map-provider-placeholder">
-          <div className="provider-card">
-            <div className="provider-title">{selectedProvider.label}</div>
-            <div className="provider-copy">{selectedProvider.description}</div>
-            <code>{mapProvider === 'kakao' ? 'VITE_KAKAO_MAP_KEY' : mapProvider === 'naver' ? 'VITE_NAVER_MAP_CLIENT_ID' : 'VITE_GOOGLE_MAPS_API_KEY'}</code>
-          </div>
-        </div>
-      )}
-      <div className="metro-legend">
-        {GEOGRAPHIC_METRO_LINES.slice(0, 9).map((path) => (
-          <span className="metro-legend-item" key={path.line}>
-            <span className="metro-legend-dot" style={{ background: LINE_COLORS[path.line] }} />
-            {path.line}
-          </span>
-        ))}
-      </div>
-      <div className="map-attribution">{selectedProvider.label} · Zoom and pan enabled</div>
+      <KakaoMetroMap
+        onStationClick={onStationClick}
+        onTooltipHide={onTooltipHide}
+        onTooltipMove={onTooltipMove}
+        onTooltipShow={onTooltipShow}
+        pageIds={pageIds}
+        rankPage={rankPage}
+        ranked={ranked}
+        scoreMap={scoreMap}
+        selectedStationId={selectedStationId}
+        stationMetrics={stationMetrics}
+      />
 
       <div className="rank-nav">
         <button className="rn-arr" disabled={rankPage === 0} onClick={() => onRankNav(-1)}>‹</button>
