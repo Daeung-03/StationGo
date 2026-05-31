@@ -1,6 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
-import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip as LeafletTooltip, useMap } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
+import { useMemo, useState } from 'react'
 import './App.css'
 
 const LINE_COLORS = {
@@ -282,146 +280,18 @@ const STATIONS = [
 ]
 
 const METRO_LINE_PATHS = [
-  {
-    line: '1호선',
-    positions: [
-      [37.503178, 126.882037],
-      [37.508725, 126.891295],
-      [37.515504, 126.907628],
-      [37.517983, 126.917614],
-      [37.529849, 126.964561],
-      [37.554648, 126.972559],
-      [37.565715, 126.977088],
-      [37.570161, 126.982923],
-      [37.57042, 126.992144],
-      [37.57142, 127.009745],
-    ],
-  },
-  {
-    line: '2호선',
-    positions: [
-      [37.549463, 126.913739],
-      [37.557192, 126.925381],
-      [37.555134, 126.936893],
-      [37.556733, 126.946013],
-      [37.563588, 126.975411],
-      [37.566014, 126.982618],
-      [37.566295, 126.99191],
-      [37.566612, 127.009054],
-      [37.561159, 127.036877],
-      [37.544581, 127.055961],
-      [37.540373, 127.069191],
-      [37.513262, 127.100159],
-      [37.511687, 127.086162],
-      [37.504503, 127.049008],
-      [37.497175, 127.027926],
-      [37.497952, 127.027619],
-      [37.491897, 127.007917],
-      [37.47653, 126.981685],
-      [37.484201, 126.929715],
-      [37.508725, 126.891295],
-      [37.549463, 126.913739],
-    ],
-  },
-  {
-    line: '3호선',
-    positions: [
-      [37.576477, 126.985443],
-      [37.57042, 126.992144],
-      [37.55434, 127.010655],
-      [37.548034, 127.015872],
-      [37.504503, 127.049008],
-      [37.493415, 127.01408],
-    ],
-  },
-  {
-    line: '4호선',
-    positions: [
-      [37.656274, 127.063089],
-      [37.570926, 127.009545],
-      [37.558514, 127.005315],
-      [37.554648, 126.972559],
-      [37.47653, 126.981685],
-    ],
-  },
-  {
-    line: '5호선',
-    positions: [
-      [37.57142, 126.97674],
-      [37.566295, 126.99191],
-      [37.57042, 126.992144],
-      [37.557322, 127.029476],
-      [37.540373, 127.069191],
-      [37.517409, 127.112359],
-    ],
-  },
-  {
-    line: '6호선',
-    positions: [
-      [37.549463, 126.913739],
-      [37.539574, 126.961339],
-      [37.534488, 126.994302],
-      [37.55434, 127.010655],
-      [37.548034, 127.015872],
-    ],
-  },
-  {
-    line: '7호선',
-    positions: [
-      [37.49297, 126.895801],
-      [37.484201, 126.929715],
-      [37.486263, 126.982649],
-      [37.504503, 127.049008],
-      [37.540693, 127.07023],
-    ],
-  },
-  {
-    line: '8호선',
-    positions: [
-      [37.517409, 127.112359],
-      [37.513262, 127.100159],
-      [37.505401, 127.106946],
-      [37.478703, 127.126191],
-    ],
-  },
-  {
-    line: '9호선',
-    positions: [
-      [37.533877, 126.902011],
-      [37.516781, 126.917841],
-      [37.51336, 126.928246],
-      [37.505098, 126.961374],
-      [37.504503, 127.049008],
-      [37.511687, 127.086162],
-    ],
-  },
-  {
-    line: '신분당선',
-    positions: [
-      [37.497952, 127.027619],
-      [37.486839, 127.033194],
-      [37.470023, 127.03842],
-      [37.443581, 127.033573],
-    ],
-  },
-  {
-    line: '경의중앙선',
-    positions: [
-      [37.557192, 126.925381],
-      [37.559778, 126.942325],
-      [37.529849, 126.964561],
-      [37.561159, 127.036877],
-    ],
-  },
-  {
-    line: '공항철도',
-    positions: [
-      [37.557192, 126.925381],
-      [37.554648, 126.972559],
-      [37.542955, 126.951869],
-      [37.447464, 126.452508],
-    ],
-  },
+  { line: '1호선', d: 'M 35 294 L 78 298 L 126 262 L 172 210 L 212 158 L 268 126 L 334 126' },
+  { line: '2호선', d: 'M 90 208 L 118 175 L 148 183 L 212 158 L 295 152 L 352 265 L 218 315 L 200 305 L 186 350 L 78 298 L 90 208' },
+  { line: '3호선', d: 'M 180 82 L 212 158 L 196 250 L 200 305 L 186 350 L 158 420' },
+  { line: '4호선', d: 'M 316 72 L 250 118 L 212 158 L 172 210 L 186 350 L 168 430' },
+  { line: '5호선', d: 'M 70 128 L 140 128 L 212 158 L 272 178 L 330 180 L 404 174' },
+  { line: '6호선', d: 'M 90 208 L 140 226 L 196 250 L 232 218 L 272 178' },
+  { line: '7호선', d: 'M 64 390 L 116 342 L 186 350 L 244 300 L 316 244 L 382 218' },
+  { line: '8호선', d: 'M 352 265 L 376 292 L 380 344 L 374 420' },
+  { line: '9호선', d: 'M 58 232 L 130 228 L 196 250 L 262 280 L 352 265 L 424 252' },
+  { line: '신분당선', d: 'M 218 315 L 236 346 L 252 384 L 280 430' },
+  { line: '경의중앙선', d: 'M 52 152 L 118 175 L 172 210 L 252 210 L 330 196' },
+  { line: '공항철도', d: 'M 38 96 L 118 175 L 172 210 L 230 236' },
 ]
 
 const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선', '9호선']
@@ -470,12 +340,37 @@ function lineTagStyle(line) {
   return { background: `${color}22`, color }
 }
 
-function computeScores(weights) {
+function getFilteredCount(station, filters) {
+  const [start, end] = filters.timeRange
+  const hourlyTotal = station.hourly.reduce((sum, value) => sum + value, 0) || 1
+  const timeTotal = station.hourly.slice(start, end).reduce((sum, value) => sum + value, 0)
+  const timeFactor = timeTotal / hourlyTotal
+  const dayFactor = filters.weekday === '평일' ? station.wdr : filters.weekday === '주말' ? station.wkr : (station.wdr + station.wkr) / 2
+  const ageFactor = USER_TYPES.reduce((sum, type) => sum + (filters.activeTypes.has(type) ? station.age[type] || 0 : 0), 0) / 100
+  const directionFactor = filters.boarding === '승차' ? 0.52 : filters.boarding === '하차' ? 0.48 : 1
+
+  return Math.round(station.cnt * timeFactor * dayFactor * ageFactor * directionFactor)
+}
+
+function getStationMetrics(filters) {
+  return STATIONS.map((station) => {
+    const count = getFilteredCount(station, filters)
+    const lineMatch = filters.activeLines.size > 0 && station.lines.some((line) => filters.activeLines.has(line))
+    const transferMatch = filters.transfer === '전체' || (filters.transfer === '환승역만' ? station.tf : !station.tf)
+    const passengerMatch = count >= filters.passengerRange[0] && count <= filters.passengerRange[1]
+    const visible = lineMatch && transferMatch && passengerMatch && count > 0
+
+    return { ...station, count, visible }
+  })
+}
+
+function computeScores(weights, stationMetrics) {
   const activeDims = weights.filter((weight) => weight.active && weight.value > 0)
   if (!activeDims.length) return null
 
   const totalWeight = activeDims.reduce((sum, dim) => sum + dim.value, 0) || 1
-  const raw = STATIONS.map((station) => {
+  const visibleMetrics = stationMetrics.filter((station) => station.visible)
+  const raw = visibleMetrics.map((station) => {
     const total = station.hourly.reduce((sum, value) => sum + value, 0) || 1
     const morning = station.hourly.slice(6, 12).reduce((sum, value) => sum + value, 0) / total
     const afternoon = station.hourly.slice(12, 18).reduce((sum, value) => sum + value, 0) / total
@@ -485,7 +380,7 @@ function computeScores(weights) {
 
     activeDims.forEach((dim) => {
       let value = 0
-      if (dim.name === '이용자수') value = station.cnt / 10000
+      if (dim.name === '이용자수') value = station.count / 10000
       else if (dim.name === '피크 집중도') value = peak * 3
       else if (dim.name === '오전 비중') value = morning
       else if (dim.name === '오후 비중') value = afternoon
@@ -507,26 +402,31 @@ function computeScores(weights) {
   return raw.reduce((scoreMap, item) => ({ ...scoreMap, [item.id]: item.score / maxScore }), {})
 }
 
-function getRankedStations(advanced, weights) {
-  const scoreMap = advanced ? computeScores(weights) : null
-  const ranked = [...STATIONS].sort((a, b) => {
+function getRankedStations(advanced, weights, filters) {
+  const stationMetrics = getStationMetrics(filters)
+  const scoreMap = advanced ? computeScores(weights, stationMetrics) : null
+  const ranked = stationMetrics.filter((station) => station.visible).sort((a, b) => {
     if (scoreMap) return (scoreMap[b.id] || 0) - (scoreMap[a.id] || 0)
-    return b.cnt - a.cnt
+    return b.count - a.count
   })
-  return { ranked, scoreMap }
+  const metricMap = stationMetrics.reduce((map, station) => ({ ...map, [station.id]: station }), {})
+
+  return { metricMap, ranked, scoreMap, stationMetrics }
 }
 
-function getRadius(station, scoreMap) {
-  const getValue = (item) => (scoreMap ? scoreMap[item.id] || 0 : item.cnt)
-  const maxValue = Math.max(...STATIONS.map((item) => getValue(item))) || 1
-  return 10 + (28 - 10) * Math.sqrt(getValue(station) / maxValue)
+function getRadius(station, stationMetrics, scoreMap) {
+  const visibleMetrics = stationMetrics.filter((item) => item.visible)
+  const getValue = (item) => (scoreMap ? scoreMap[item.id] || 0 : item.count)
+  const maxValue = Math.max(...visibleMetrics.map((item) => getValue(item)), 1)
+  const value = station.visible ? getValue(station) : 0
+
+  return 7 + (27 - 7) * Math.sqrt(value / maxValue)
 }
 
 function App() {
   const [advanced, setAdvanced] = useState(false)
   const [rankPage, setRankPage] = useState(0)
   const [selectedStationId, setSelectedStationId] = useState(null)
-  const [zoom, setZoom] = useState(12)
   const [timeRange, setTimeRange] = useState([0, 24])
   const [passengerRange, setPassengerRange] = useState([0, 10000])
   const [weekday, setWeekday] = useState('전체')
@@ -539,10 +439,20 @@ function App() {
   const [simTab, setSimTab] = useState(0)
   const [tooltip, setTooltip] = useState(null)
 
-  const { ranked, scoreMap } = useMemo(() => getRankedStations(advanced, weights), [advanced, weights])
-  const pageCount = Math.ceil(ranked.length / 3)
-  const pageStations = ranked.slice(rankPage * 3, rankPage * 3 + 3)
-  const selectedStation = STATIONS.find((station) => station.id === selectedStationId)
+  const filters = useMemo(() => ({
+    activeLines,
+    activeTypes,
+    boarding,
+    passengerRange,
+    timeRange,
+    transfer,
+    weekday,
+  }), [activeLines, activeTypes, boarding, passengerRange, timeRange, transfer, weekday])
+  const { metricMap, ranked, scoreMap, stationMetrics } = useMemo(() => getRankedStations(advanced, weights, filters), [advanced, filters, weights])
+  const pageCount = Math.max(1, Math.ceil(ranked.length / 3))
+  const safeRankPage = Math.min(rankPage, pageCount - 1)
+  const pageStations = ranked.slice(safeRankPage * 3, safeRankPage * 3 + 3)
+  const selectedStation = metricMap[selectedStationId]?.visible ? metricMap[selectedStationId] : null
 
   const updateTimeRange = (index, value) => {
     setTimeRange(([start, end]) => {
@@ -554,6 +464,7 @@ function App() {
       }
       return next
     })
+    setRankPage(0)
   }
 
   const updatePassengerRange = (index, value) => {
@@ -566,6 +477,31 @@ function App() {
       }
       return next
     })
+    setRankPage(0)
+  }
+
+  const updateChoice = (setter) => (value) => {
+    setter(value)
+    setRankPage(0)
+  }
+
+  const applyPreset = (name) => {
+    setSelectedPreset(name)
+    setRankPage(0)
+    if (name === '출퇴근 패턴') {
+      setTimeRange([7, 20])
+      setWeekday('평일')
+      setActiveTypes(new Set(['일반']))
+    } else if (name === '주말 여가') {
+      setTimeRange([10, 22])
+      setWeekday('주말')
+      setActiveTypes(new Set(USER_TYPES))
+    } else if (name === '청년·학생층') {
+      setActiveTypes(new Set(['청소년', '중고생', '일반']))
+    } else if (name === '교통약자') {
+      setTimeRange([0, 24])
+      setActiveTypes(new Set(['아동', '우대권']))
+    }
   }
 
   const toggleAdvanced = () => {
@@ -580,6 +516,7 @@ function App() {
       else next.add(type)
       return next
     })
+    setRankPage(0)
   }
 
   const toggleLine = (line) => {
@@ -589,6 +526,7 @@ function App() {
       else next.add(line)
       return next
     })
+    setRankPage(0)
   }
 
   const updateWeight = (name, key, value) => {
@@ -599,6 +537,8 @@ function App() {
   }
 
   const handleStationClick = (stationId) => {
+    const station = metricMap[stationId]
+    if (!station?.visible) return
     setSelectedStationId((current) => (current === stationId ? null : stationId))
     setTooltip(null)
   }
@@ -608,7 +548,7 @@ function App() {
   }
 
   const selectStationByName = (name) => {
-    const station = STATIONS.find((item) => item.name === name)
+    const station = stationMetrics.find((item) => item.name === name && item.visible)
     if (station) setSelectedStationId(station.id)
   }
 
@@ -622,14 +562,14 @@ function App() {
           activeTypes={activeTypes}
           boarding={boarding}
           onAdvancedToggle={toggleAdvanced}
-          onBoardingChange={setBoarding}
+          onBoardingChange={updateChoice(setBoarding)}
           onLineToggle={toggleLine}
           onPassengerRangeChange={updatePassengerRange}
-          onPresetChange={setSelectedPreset}
+          onPresetChange={applyPreset}
           onTimeRangeChange={updateTimeRange}
-          onTransferChange={setTransfer}
+          onTransferChange={updateChoice(setTransfer)}
           onTypeToggle={toggleUserType}
-          onWeekdayChange={setWeekday}
+          onWeekdayChange={updateChoice(setWeekday)}
           onWeightChange={updateWeight}
           passengerRange={passengerRange}
           selectedPreset={selectedPreset}
@@ -646,21 +586,22 @@ function App() {
           onTooltipHide={() => setTooltip(null)}
           onTooltipMove={(event) => setTooltip((current) => (current ? { ...current, x: event.clientX, y: event.clientY } : current))}
           onTooltipShow={(event, station, rank) => setTooltip({ station, rank, x: event.clientX, y: event.clientY })}
-          onZoom={(direction) => setZoom((current) => Math.min(16, Math.max(10, current + direction)))}
           pageCount={pageCount}
           pageStations={pageStations}
-          rankPage={rankPage}
+          rankPage={safeRankPage}
           ranked={ranked}
           scoreMap={scoreMap}
           selectedStationId={selectedStationId}
-          zoom={zoom}
+          stationMetrics={stationMetrics}
         />
         <Dashboard
+          metricMap={metricMap}
           onClose={() => setSelectedStationId(null)}
           onSimTabChange={setSimTab}
           onStationClick={handleStationClick}
           ranked={ranked}
           selectedStation={selectedStation}
+          stationMetrics={stationMetrics}
           selectStationByName={selectStationByName}
           simTab={simTab}
         />
@@ -931,21 +872,24 @@ function MapPanel({
   onTooltipHide,
   onTooltipMove,
   onTooltipShow,
-  onZoom,
   pageCount,
   pageStations,
   rankPage,
   ranked,
   scoreMap,
   selectedStationId,
-  zoom,
+  stationMetrics,
 }) {
   const pageIds = pageStations.map((station) => station.id)
-  const rankStart = rankPage * 3 + 1
-  const rankEnd = Math.min(rankStart + 2, ranked.length)
+  const rankStart = ranked.length ? rankPage * 3 + 1 : 0
+  const rankEnd = ranked.length ? Math.min(rankStart + 2, ranked.length) : 0
 
   return (
-    <main className="mapc">
+    <main className="mapc schematic-mapc">
+      <div className="schematic-bg">
+        <div className="river-band" />
+        <span className="schematic-water-label">한강</span>
+      </div>
       <div className="rank-bar">
         <div className="rb-card" title={`기준: ${advanced ? '고급점수' : '이용자수'}`}>
           <span className="rb-label">TOP</span>
@@ -961,90 +905,83 @@ function MapPanel({
         </div>
       </div>
 
-      <div className="zctrl">
-        <button className="zbtn" onClick={() => onZoom(1)}>+</button>
-        <button className="zbtn" onClick={() => onZoom(-1)}>−</button>
-      </div>
+      <div className="schematic-wrap">
+        <svg className="schematic-svg" viewBox="0 0 440 490">
+          <defs>
+            <filter id="stationShadow" x="-40%" y="-40%" width="180%" height="180%">
+              <feDropShadow dx="0" dy="3" floodColor="#1E3A8A" floodOpacity=".2" stdDeviation="3" />
+            </filter>
+          </defs>
+          <path className="han-river" d="M 20 236 C 96 206 160 234 226 220 C 292 206 342 226 420 204" />
+          {METRO_LINE_PATHS.map((path) => {
+            const lineVisible = stationMetrics.some((station) => station.visible && station.lines.includes(path.line))
+            return (
+              <path
+                className={`metro-line ${lineVisible ? '' : 'muted'}`}
+                d={path.d}
+                key={path.line}
+                stroke={LINE_COLORS[path.line] || '#64748B'}
+              />
+            )
+          })}
+          {stationMetrics.map((station) => {
+            const radius = getRadius(station, stationMetrics, scoreMap)
+            const selected = selectedStationId === station.id
+            const inPage = pageIds.includes(station.id)
+            const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
+            const localRank = pageIds.indexOf(station.id) + 1
+            const fill = selected ? '#FF4757' : inPage ? '#3B6DFF' : '#fff'
+            const stroke = selected ? '#FF4757' : station.visible ? LINE_COLORS[station.lines[0]] || '#3B6DFF' : '#CBD5E1'
 
-      <MapContainer
-        attributionControl={false}
-        center={[37.535, 126.99]}
-        className="realtime-map"
-        maxZoom={16}
-        minZoom={10}
-        scrollWheelZoom
-        zoom={zoom}
-        zoomControl={false}
-      >
-        <LeafletZoomSync zoom={zoom} />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {METRO_LINE_PATHS.map((path) => (
-          <Polyline
-            key={path.line}
-            pathOptions={{
-              color: LINE_COLORS[path.line] || '#64748B',
-              opacity: 0.9,
-              weight: 5,
-            }}
-            positions={path.positions}
-          />
-        ))}
-        {STATIONS.map((station) => {
-          const radius = getRadius(station, scoreMap)
-          const selected = selectedStationId === station.id
-          const inPage = pageIds.includes(station.id)
-          const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
-          const localRank = pageIds.indexOf(station.id) + 1
-
-          return (
-            <Fragment key={station.id}>
-              <CircleMarker
-                center={[station.lat, station.lng]}
-                eventHandlers={{
-                  click: () => onStationClick(station.id),
-                  mousemove: (event) => onTooltipMove(event.originalEvent),
-                  mouseout: onTooltipHide,
-                  mouseover: (event) => onTooltipShow(event.originalEvent, station, globalRank),
-                }}
-                pathOptions={{
-                  className: selected ? 'station-marker station-marker-selected' : 'station-marker',
-                  color: selected ? '#FF4757' : inPage ? '#3B6DFF' : '#3B6DFF',
-                  fillColor: selected ? '#FF4757' : '#3B6DFF',
-                  fillOpacity: selected ? 0.94 : inPage ? 0.78 : 0.42,
-                  opacity: selected ? 1 : inPage ? 0.85 : 0.42,
-                  weight: inPage || selected ? 2 : 1,
-                }}
-                radius={radius}
+            return (
+              <g
+                className={`schematic-station ${station.visible ? '' : 'muted'} ${selected ? 'selected' : ''}`}
+                key={station.id}
+                onClick={() => onStationClick(station.id)}
+                onMouseEnter={(event) => station.visible && onTooltipShow(event, station, globalRank)}
+                onMouseLeave={onTooltipHide}
+                onMouseMove={onTooltipMove}
               >
-                <LeafletTooltip direction="bottom" offset={[0, radius + 4]} opacity={1} permanent>
-                  <span className={selected ? 'map-station-label selected' : 'map-station-label'}>{station.name}</span>
-                </LeafletTooltip>
-              </CircleMarker>
-              {inPage && !selected && (
-                <CircleMarker
-                  center={[station.lat + 0.0022, station.lng + 0.0024]}
-                  interactive={false}
-                  pathOptions={{
-                    color: '#fff',
-                    fillColor: RANK_DOT_COLORS[localRank - 1] || '#9CA3AF',
-                    fillOpacity: 1,
-                    opacity: 1,
-                    weight: 2,
-                  }}
-                  radius={9}
+                {selected && (
+                  <circle className="station-ripple" cx={station.x} cy={station.y} r={radius + 8}>
+                    <animate attributeName="r" dur="2.2s" repeatCount="indefinite" values={`${radius + 8};${radius + 22};${radius + 8}`} />
+                    <animate attributeName="opacity" dur="2.2s" repeatCount="indefinite" values=".55;0;.55" />
+                  </circle>
+                )}
+                <circle
+                  className="station-halo"
+                  cx={station.x}
+                  cy={station.y}
+                  fill="#fff"
+                  r={radius + 4}
+                />
+                <circle
+                  className="station-node"
+                  cx={station.x}
+                  cy={station.y}
+                  fill={fill}
+                  r={radius}
+                  stroke={stroke}
+                />
+                {station.tf && <circle className="transfer-ring" cx={station.x} cy={station.y} r={radius + 7} />}
+                {inPage && !selected && (
+                  <g className="rank-badge-svg">
+                    <circle cx={station.x + radius * .74} cy={station.y - radius * .74} fill={RANK_DOT_COLORS[localRank - 1] || '#9CA3AF'} r="9" />
+                    <text x={station.x + radius * .74} y={station.y - radius * .74 + 3.5}>{rankPage * 3 + localRank}</text>
+                  </g>
+                )}
+                <text
+                  className={`station-label ${selected ? 'selected' : ''}`}
+                  x={station.x}
+                  y={station.y + radius + 15}
                 >
-                  <LeafletTooltip className="rank-badge-tip" direction="center" opacity={1} permanent>
-                    <span className="rank-badge">{rankPage * 3 + localRank}</span>
-                  </LeafletTooltip>
-                </CircleMarker>
-              )}
-            </Fragment>
-          )
-        })}
-      </MapContainer>
+                  {station.name}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
       <div className="metro-legend">
         {METRO_LINE_PATHS.slice(0, 9).map((path) => (
           <span className="metro-legend-item" key={path.line}>
@@ -1053,7 +990,7 @@ function MapPanel({
           </span>
         ))}
       </div>
-      <div className="map-attribution">Live map tiles by OpenStreetMap · Metro lines are schematic overlays</div>
+      <div className="map-attribution">Octolinear schematic style · Filters update station visibility and rank</div>
 
       <div className="rank-nav">
         <button className="rn-arr" disabled={rankPage === 0} onClick={() => onRankNav(-1)}>‹</button>
@@ -1069,21 +1006,13 @@ function MapPanel({
   )
 }
 
-function LeafletZoomSync({ zoom }) {
-  const map = useMap()
-  useEffect(() => {
-    map.setZoom(zoom)
-  }, [map, zoom])
-
-  return null
-}
-
-function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedStation, selectStationByName, simTab }) {
+function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedStation, selectStationByName, simTab, stationMetrics }) {
   if (!selectedStation) return <aside className="dash" />
 
   const rank = ranked.findIndex((item) => item.id === selectedStation.id) + 1
-  const average = Math.round(STATIONS.reduce((sum, station) => sum + station.cnt, 0) / STATIONS.length)
-  const diff = ((selectedStation.cnt - average) / average * 100).toFixed(0)
+  const visibleMetrics = stationMetrics.filter((station) => station.visible)
+  const average = Math.round(visibleMetrics.reduce((sum, station) => sum + station.count, 0) / (visibleMetrics.length || 1))
+  const diff = average ? ((selectedStation.count - average) / average * 100).toFixed(0) : 0
   const top3 = selectedStation.hourly
     .map((value, hour) => ({ hour, value }))
     .sort((a, b) => b.value - a.value)
@@ -1112,11 +1041,11 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
           <div className="mhl">
             <div className="mhlabel">조건 반영 합산 방문객</div>
             <div className="mhval">
-              {selectedStation.cnt.toLocaleString()}
+              {selectedStation.count.toLocaleString()}
               <span>명</span>
             </div>
             <div className="mhsub">
-              전체 {rank}위 · 평균 대비 {selectedStation.cnt > average ? '+' : ''}
+              조건 내 {rank}위 · 평균 대비 {selectedStation.count > average ? '+' : ''}
               {diff}%
             </div>
           </div>
@@ -1185,6 +1114,7 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
             selectStationByName={selectStationByName}
             simTab={simTab}
             station={selectedStation}
+            stationMetrics={stationMetrics}
           />
         </div>
       </div>
@@ -1226,30 +1156,30 @@ function AgePie({ station }) {
         총계
       </text>
       <text fill="#1A202C" fontFamily="Noto Sans KR,sans-serif" fontSize="11" fontWeight="800" textAnchor="middle" x="46" y="55">
-        {(station.cnt / 1000).toFixed(1)}K
+        {(station.count / 1000).toFixed(1)}K
       </text>
     </svg>
   )
 }
 
-function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, station }) {
+function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, station, stationMetrics }) {
   const items = (() => {
     if (simTab === 0) {
       return station.simPat.map((item, index) => ({ ...item, rank: index + 1, onClick: () => selectStationByName(item.name), score: `${item.pct}%` }))
     }
 
     if (simTab === 1) {
-      return STATIONS
-      .filter((item) => item.id !== station.id)
+      return stationMetrics
+      .filter((item) => item.id !== station.id && item.visible)
       .map((item) => ({ ...item, km: getDistanceKm(item, station).toFixed(1) }))
       .sort((a, b) => parseFloat(a.km) - parseFloat(b.km))
       .slice(0, 3)
       .map((item, index) => ({ name: item.name, lines: item.lines.join('·'), rank: index + 1, onClick: () => onStationClick(item.id), score: `~${item.km}km` }))
     }
 
-    return STATIONS
-      .filter((item) => item.id !== station.id)
-      .map((item) => ({ ...item, diff: Math.abs(item.cnt - station.cnt) }))
+    return stationMetrics
+      .filter((item) => item.id !== station.id && item.visible)
+      .map((item) => ({ ...item, diff: Math.abs(item.count - station.count) }))
       .sort((a, b) => a.diff - b.diff)
       .slice(0, 3)
       .map((item, index) => ({
@@ -1257,7 +1187,7 @@ function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, 
         lines: `전체 ${ranked.findIndex((rankedStation) => rankedStation.id === item.id) + 1}위`,
         rank: index + 1,
         onClick: () => onStationClick(item.id),
-        score: `${item.cnt.toLocaleString()}명`,
+        score: `${item.count.toLocaleString()}명`,
       }))
   })()
 
@@ -1281,7 +1211,7 @@ function Tooltip({ advanced, ranked, scoreMap, selectedStation, tooltip }) {
   if (!tooltip) return <div className="tt" />
 
   const { station, rank, x, y } = tooltip
-  const diff = selectedStation && selectedStation.id !== station.id ? station.cnt - selectedStation.cnt : null
+  const diff = selectedStation && selectedStation.id !== station.id ? station.count - selectedStation.count : null
   const firstLine = station.lines[0]
   const distance =
     selectedStation && selectedStation.id !== station.id
@@ -1297,7 +1227,7 @@ function Tooltip({ advanced, ranked, scoreMap, selectedStation, tooltip }) {
       </div>
       <div className="ttr">
         <span className="ttk">이용자 수</span>
-        <span className="ttv">{station.cnt.toLocaleString()}명</span>
+        <span className="ttv">{station.count.toLocaleString()}명</span>
       </div>
       {score !== null && (
         <div className="ttr">
