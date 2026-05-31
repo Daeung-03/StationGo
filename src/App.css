@@ -688,6 +688,10 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   background: #F8FAFC;
 }
 
+.kakao-map {
+  position: relative;
+}
+
 .leaflet-container {
   font-family: 'Noto Sans KR', sans-serif;
 }
@@ -759,6 +763,38 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   line-height: 1;
 }
 
+.kakao-station-label {
+  display: inline-flex;
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .92);
+  color: #4A5568;
+  font-size: 10px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .1);
+  white-space: nowrap;
+  transform: translateY(-6px);
+}
+
+.kakao-station-label.selected {
+  color: #FF4757;
+}
+
+.kakao-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #F59E0B;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .16);
+}
+
 .map-provider-placeholder {
   width: 100%;
   height: 100%;
@@ -770,6 +806,14 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
     linear-gradient(90deg, rgba(210, 218, 238, .32) 1px, transparent 1px),
     #F2F5FC;
   background-size: 36px 36px;
+}
+
+.map-provider-placeholder.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: rgba(242, 245, 252, .82);
+  backdrop-filter: blur(2px);
 }
 
 .provider-card {

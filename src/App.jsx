@@ -1,7 +1,9 @@
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip as LeafletTooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
+
+const KAKAO_MAP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY
 
 const LINE_COLORS = {
   '1호선': '#0052A4',
@@ -587,6 +589,217 @@ function getRadius(station, stationMetrics, scoreMap) {
   const value = station.visible ? getValue(station) : 0
 
   return 7 + (27 - 7) * Math.sqrt(value / maxValue)
+}
+
+function loadKakaoMaps(appKey) {
+  if (window.kakao?.maps) return Promise.resolve(window.kakao)
+  if (window.kakaoMapsPromise) return window.kakaoMapsPromise
+
+  window.kakaoMapsPromise = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById('kakao-map-sdk')
+
+    const boot = () => {
+      if (!window.kakao?.maps) {
+        reject(new Error('Kakao Maps SDK failed to load.'))
+        return
+      }
+
+      window.kakao.maps.load(() => resolve(window.kakao))
+    }
+
+    if (existingScript) {
+      existingScript.addEventListener('load', boot, { once: true })
+      existingScript.addEventListener('error', () => reject(new Error('Kakao Maps SDK failed to load.')), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = 'kakao-map-sdk'
+    script.async = true
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`
+    script.onload = boot
+    script.onerror = () => reject(new Error('Kakao Maps SDK failed to load.'))
+    document.head.appendChild(script)
+  })
+
+  return window.kakaoMapsPromise
+}
+
+function KakaoMetroMap({
+  onStationClick,
+  onTooltipHide,
+  onTooltipMove,
+  onTooltipShow,
+  pageIds,
+  rankPage,
+  ranked,
+  scoreMap,
+  selectedStationId,
+  stationMetrics,
+}) {
+  const containerRef = useRef(null)
+  const mapRef = useRef(null)
+  const overlaysRef = useRef([])
+  const [loadState, setLoadState] = useState(KAKAO_MAP_KEY ? 'loading' : 'missing')
+
+  useEffect(() => {
+    if (!KAKAO_MAP_KEY) {
+      return undefined
+    }
+
+    let cancelled = false
+
+    loadKakaoMaps(KAKAO_MAP_KEY)
+      .then((kakao) => {
+        if (cancelled || !containerRef.current) return
+
+        if (!mapRef.current) {
+          mapRef.current = new kakao.maps.Map(containerRef.current, {
+            center: new kakao.maps.LatLng(37.535, 126.99),
+            level: 7,
+          })
+          mapRef.current.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT)
+        }
+
+        setLoadState('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setLoadState('error')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return undefined
+
+    const kakao = window.kakao
+    const map = mapRef.current
+    const syntheticEvent = (mouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      const point = mouseEvent?.point
+      return {
+        clientX: (rect?.left || 0) + (point?.x || (rect?.width || 0) / 2),
+        clientY: (rect?.top || 0) + (point?.y || (rect?.height || 0) / 2),
+      }
+    }
+
+    overlaysRef.current.forEach((overlay) => overlay.setMap(null))
+    overlaysRef.current = []
+
+    GEOGRAPHIC_METRO_LINES.forEach((path) => {
+      const lineVisible = stationMetrics.some((station) => station.visible && station.lines.includes(path.line))
+      const route = path.positions.map(([lat, lng]) => new kakao.maps.LatLng(lat, lng))
+      const casing = new kakao.maps.Polyline({
+        endArrow: false,
+        map,
+        path: route,
+        strokeColor: '#ffffff',
+        strokeOpacity: lineVisible ? 0.88 : 0.1,
+        strokeStyle: 'solid',
+        strokeWeight: lineVisible ? 8 : 5,
+      })
+      const rail = new kakao.maps.Polyline({
+        endArrow: false,
+        map,
+        path: route,
+        strokeColor: LINE_COLORS[path.line] || '#64748B',
+        strokeOpacity: lineVisible ? 0.78 : 0.1,
+        strokeStyle: 'solid',
+        strokeWeight: lineVisible ? 4 : 2,
+      })
+
+      overlaysRef.current.push(casing, rail)
+    })
+
+    stationMetrics.forEach((station) => {
+      const position = new kakao.maps.LatLng(station.lat, station.lng)
+      const radius = getRadius(station, stationMetrics, scoreMap)
+      const selected = selectedStationId === station.id
+      const inPage = pageIds.includes(station.id)
+      const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
+      const localRank = pageIds.indexOf(station.id) + 1
+
+      const marker = new kakao.maps.Circle({
+        center: position,
+        fillColor: selected ? '#FF4757' : inPage ? '#3B6DFF' : '#ffffff',
+        fillOpacity: station.visible ? selected ? 0.94 : inPage ? 0.82 : 0.72 : 0.16,
+        map,
+        radius: Math.max(34, radius * 6),
+        strokeColor: selected ? '#FF4757' : station.visible ? LINE_COLORS[station.lines[0]] || '#3B6DFF' : '#CBD5E1',
+        strokeOpacity: station.visible ? 1 : 0.2,
+        strokeWeight: selected || inPage ? 3 : 2,
+      })
+
+      kakao.maps.event.addListener(marker, 'click', () => onStationClick(station.id))
+      kakao.maps.event.addListener(marker, 'mouseover', (mouseEvent) => {
+        if (station.visible) onTooltipShow(syntheticEvent(mouseEvent), station, globalRank)
+      })
+      kakao.maps.event.addListener(marker, 'mousemove', (mouseEvent) => onTooltipMove(syntheticEvent(mouseEvent)))
+      kakao.maps.event.addListener(marker, 'mouseout', onTooltipHide)
+      overlaysRef.current.push(marker)
+
+      if (station.visible) {
+        const label = new kakao.maps.CustomOverlay({
+          clickable: false,
+          content: `<span class="${selected ? 'kakao-station-label selected' : 'kakao-station-label'}">${station.name}</span>`,
+          map,
+          position,
+          xAnchor: 0.5,
+          yAnchor: -0.55,
+        })
+        overlaysRef.current.push(label)
+      }
+
+      if (inPage && !selected) {
+        const badge = new kakao.maps.CustomOverlay({
+          clickable: false,
+          content: `<span class="kakao-rank-badge">${rankPage * 3 + localRank}</span>`,
+          map,
+          position: new kakao.maps.LatLng(station.lat + 0.0022, station.lng + 0.0024),
+          xAnchor: 0.5,
+          yAnchor: 0.5,
+        })
+        overlaysRef.current.push(badge)
+      }
+    })
+
+    return () => {
+      overlaysRef.current.forEach((overlay) => overlay.setMap(null))
+      overlaysRef.current = []
+    }
+  }, [
+    loadState,
+    onStationClick,
+    onTooltipHide,
+    onTooltipMove,
+    onTooltipShow,
+    pageIds,
+    rankPage,
+    ranked,
+    scoreMap,
+    selectedStationId,
+    stationMetrics,
+  ])
+
+  return (
+    <>
+      <div className="internet-map kakao-map" ref={containerRef} />
+      {loadState !== 'ready' && (
+        <div className="map-provider-placeholder overlay">
+          <div className="provider-card">
+            <div className="provider-title">
+              {loadState === 'missing' ? 'Kakao key needed' : loadState === 'error' ? 'Kakao map failed to load' : 'Loading Kakao Maps'}
+            </div>
+            <div className="provider-copy">Add your JavaScript key to StationGo/.env.local as VITE_KAKAO_MAP_KEY, then restart Vite.</div>
+            <code>VITE_KAKAO_MAP_KEY</code>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 function App() {
@@ -1184,6 +1397,19 @@ function MapPanel({
             )
           })}
         </MapContainer>
+      ) : mapProvider === 'kakao' ? (
+        <KakaoMetroMap
+          onStationClick={onStationClick}
+          onTooltipHide={onTooltipHide}
+          onTooltipMove={onTooltipMove}
+          onTooltipShow={onTooltipShow}
+          pageIds={pageIds}
+          rankPage={rankPage}
+          ranked={ranked}
+          scoreMap={scoreMap}
+          selectedStationId={selectedStationId}
+          stationMetrics={stationMetrics}
+        />
       ) : (
         <div className="map-provider-placeholder">
           <div className="provider-card">
