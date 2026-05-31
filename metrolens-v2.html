@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MetroLens v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:#E8EBF5;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px;color:#1A202C;}
+
+/* NAV */
+.nav{height:50px;background:#fff;border-bottom:1px solid #EAECF5;display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.logo{font-size:14px;font-weight:800;color:#3B6DFF;letter-spacing:-0.5px;}
+.logo em{color:#1A202C;font-style:normal;}
+.npill{padding:5px 12px;border-radius:14px;font-size:11px;font-weight:700;border:1.5px solid #E4E8F5;color:#8A95AC;cursor:pointer;user-select:none;}
+.npill.on{background:#EEF2FF;border-color:#3B6DFF;color:#3B6DFF;}
+.ml{margin-left:auto;display:flex;gap:6px;}
+.ybadge{padding:4px 10px;background:#F5F7FD;border-radius:7px;font-size:11px;color:#8A95AC;font-weight:600;}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden;}
+
+/* ── SIDEBAR ─────────────────────── */
+.sidebar{width:268px;flex-shrink:0;background:#fff;border-right:1px solid #EAECF5;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.sb-head{height:48px;padding:0 14px;border-bottom:1px solid #EAECF5;display:flex;align-items:center;gap:8px;flex-shrink:0;position:relative;z-index:21;background:#fff;}
+.sb-title{font-size:13px;font-weight:800;color:#1A202C;flex:1;letter-spacing:-0.3px;}
+.adv-wrap{display:flex;align-items:center;gap:5px;}
+.adv-lbl{font-size:10px;font-weight:700;color:#A0AABF;white-space:nowrap;transition:color .2s;}
+.adv-lbl.on{color:#3B6DFF;}
+.sw{width:30px;height:17px;border-radius:9px;background:#E4E8F5;border:none;cursor:pointer;position:relative;flex-shrink:0;transition:background .2s;outline:none;}
+.sw.on{background:#3B6DFF;}
+.sw::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.sw.on::after{left:15px;}
+
+.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:14px;}
+.sb-scroll::-webkit-scrollbar{width:3px;}
+.sb-scroll::-webkit-scrollbar-thumb{background:#E4E8F5;border-radius:2px;}
+
+/* Filter sections */
+.fsec{}
+.flabel{font-size:10px;font-weight:800;color:#A0AABF;letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.fbadge{font-size:9px;font-weight:700;background:#EEF2FF;color:#3B6DFF;padding:2px 6px;border-radius:6px;text-transform:none;letter-spacing:0;}
+
+/* Dual range */
+.trow{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;}
+.tchip{font-size:11px;font-weight:700;color:#3B6DFF;background:#EEF2FF;border-radius:7px;padding:4px 8px;min-width:50px;text-align:center;}
+.tsep{font-size:10px;color:#C4CAD9;}
+.swrap{position:relative;height:20px;display:flex;align-items:center;}
+.tbg{position:absolute;height:3px;width:100%;background:#E4E8F5;border-radius:2px;}
+.tfl{position:absolute;height:3px;background:#3B6DFF;border-radius:2px;}
+input[type=range].dr{position:absolute;width:100%;-webkit-appearance:none;appearance:none;background:transparent;pointer-events:none;height:20px;}
+input[type=range].dr::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#3B6DFF;pointer-events:all;cursor:pointer;border:2.5px solid #fff;box-shadow:0 0 0 1.5px #3B6DFF;}
+.rlabels{display:flex;justify-content:space-between;margin-top:4px;}
+.rlabel{font-size:9px;color:#C4CAD9;}
+
+/* Buttons + pills */
+.btnrow{display:flex;gap:4px;}
+.tbtn{flex:1;padding:6px 0;border-radius:8px;font-size:11px;font-weight:700;text-align:center;cursor:pointer;border:1.5px solid #E4E8F5;background:#fff;color:#8A95AC;transition:all .15s;user-select:none;}
+.tbtn.on{background:#EEF2FF;border-color:#3B6DFF;color:#3B6DFF;}
+.pgroup{display:flex;flex-wrap:wrap;gap:4px;}
+.pill{padding:5px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid #E4E8F5;background:#fff;color:#8A95AC;transition:all .15s;user-select:none;}
+.pill.on{background:#EEF2FF;border-color:#3B6DFF;color:#3B6DFF;}
+
+/* Line grid */
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.lchip{display:flex;align-items:center;justify-content:center;gap:3px;padding:5px 0;border-radius:7px;font-size:10px;font-weight:800;cursor:pointer;border:1.5px solid #E4E8F5;background:#fff;color:#8A95AC;transition:all .15s;user-select:none;}
+.lchip .ld{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+/* Presets */
+.plist{display:flex;flex-direction:column;gap:4px;}
+.pitem{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;border:1.5px solid #E4E8F5;cursor:pointer;background:#fff;transition:all .15s;}
+.pitem:hover{border-color:#C4CAD9;}
+.pitem.on{border-color:#3B6DFF;background:#EEF2FF;}
+.picon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.pname{font-size:11px;font-weight:800;color:#1A202C;}
+.pdesc{font-size:9px;color:#A0AABF;margin-top:1px;}
+
+/* Peak card */
+.peak-card{background:linear-gradient(135deg,#5B4FD4 0%,#7C6BE8 100%);border-radius:11px;padding:10px 13px;display:none;flex-direction:column;gap:5px;}
+.peak-card.show{display:flex;}
+.pk-head{font-size:9px;font-weight:800;color:rgba(255,255,255,0.7);letter-spacing:.5px;text-transform:uppercase;}
+.pk-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:2px;}
+.pk-tag{background:rgba(255,255,255,0.18);border-radius:5px;padding:3px 7px;font-size:10px;font-weight:700;color:#fff;}
+.pk-count{margin-left:auto;font-size:13px;font-weight:900;color:#fff;white-space:nowrap;}
+
+/* ── ADVANCED OVERLAY ─────────────── */
+.adv-overlay{position:absolute;top:48px;left:0;right:0;bottom:0;z-index:20;background:rgba(255,255,255,0.97);display:flex;flex-direction:column;transform:translateY(102%);transition:transform .3s cubic-bezier(0.4,0,0.2,1);}
+.adv-overlay.show{transform:translateY(0);}
+.adv-top{padding:11px 14px 9px;border-bottom:1px solid #EAECF5;flex-shrink:0;}
+.adv-title{font-size:12px;font-weight:800;color:#3B6DFF;}
+.adv-desc{font-size:10px;color:#8A95AC;margin-top:2px;line-height:1.5;}
+.adv-body{flex:1;overflow-y:auto;padding:8px 14px 14px;display:flex;flex-direction:column;}
+.adv-body::-webkit-scrollbar{width:3px;}
+.adv-body::-webkit-scrollbar-thumb{background:#E4E8F5;border-radius:2px;}
+.eq-glabel{font-size:9px;font-weight:800;color:#A0AABF;letter-spacing:.6px;text-transform:uppercase;margin:10px 0 4px;}
+.eq-row{display:flex;align-items:center;gap:7px;padding:4px 0;}
+.eq-check{width:14px;height:14px;border-radius:3px;border:1.5px solid #E4E8F5;cursor:pointer;flex-shrink:0;position:relative;transition:all .15s;}
+.eq-check.on{background:#3B6DFF;border-color:#3B6DFF;}
+.eq-check.on::after{content:'';position:absolute;top:2px;left:4px;width:4px;height:7px;border:1.5px solid #fff;border-top:0;border-left:0;transform:rotate(45deg);}
+.eq-name{font-size:11px;font-weight:700;color:#4A5568;min-width:80px;transition:color .15s;}
+.eq-name.off{color:#C4CAD9;}
+input[type=range].eq-sl{flex:1;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;background:#E4E8F5;cursor:pointer;transition:opacity .15s;}
+input[type=range].eq-sl::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:#3B6DFF;border:2px solid #fff;box-shadow:0 0 0 1px #3B6DFF;}
+input[type=range].eq-sl:disabled{opacity:.22;cursor:default;}
+input[type=range].eq-sl:disabled::-webkit-slider-thumb{background:#C4CAD9;box-shadow:none;}
+.eq-val{font-size:10px;font-weight:800;color:#3B6DFF;min-width:22px;text-align:right;transition:color .15s;}
+.eq-val.off{color:#C4CAD9;}
+.adv-note{margin-top:12px;padding:9px 11px;background:#EEF2FF;border-radius:9px;font-size:10px;color:#3B6DFF;line-height:1.6;}
+
+/* ── MAP ─────────────────────────── */
+.mapc{flex:1;position:relative;background:#F2F5FC;overflow:hidden;display:flex;flex-direction:column;}
+.mgrid{position:absolute;inset:0;background:linear-gradient(rgba(210,218,238,.32) 1px,transparent 1px),linear-gradient(90deg,rgba(210,218,238,.32) 1px,transparent 1px);background-size:36px 36px;pointer-events:none;}
+
+/* Top rank bar */
+.rank-bar{position:absolute;top:14px;left:14px;z-index:10;}
+.rb-card{background:#fff;border-radius:12px;padding:7px 12px;box-shadow:0 2px 14px rgba(0,0,0,0.1);display:flex;align-items:center;gap:8px;}
+.rb-label{font-size:9px;font-weight:800;color:#A0AABF;letter-spacing:.5px;}
+.rb-item{display:flex;align-items:center;gap:5px;}
+.rb-sep{width:1px;height:15px;background:#EEF0F9;margin:0 1px;}
+.rdot{width:16px;height:16px;border-radius:50%;font-size:8px;font-weight:900;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rd1{background:#F59E0B;}.rd2{background:#9CA3AF;}.rd3{background:#B45309;}
+.rb-name{font-size:11px;font-weight:700;color:#1A202C;}
+
+/* Zoom */
+.zctrl{position:absolute;top:14px;right:14px;z-index:10;background:#fff;border-radius:9px;box-shadow:0 2px 10px rgba(0,0,0,0.1);overflow:hidden;display:flex;flex-direction:column;}
+.zbtn{width:32px;height:32px;border:none;background:transparent;cursor:pointer;font-size:16px;color:#4A5568;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.zbtn:hover{background:#F5F7FD;}
+.zbtn+.zbtn{border-top:1px solid #EEF0F9;}
+
+.mwrap{flex:1;display:flex;align-items:center;justify-content:center;padding:54px 14px 54px;position:relative;z-index:1;}
+
+/* Bottom rank nav */
+.rank-nav{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:10;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.12);padding:7px 13px;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.rn-arr{width:25px;height:25px;border:1.5px solid #E4E8F5;border-radius:7px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#4A5568;transition:all .15s;}
+.rn-arr:hover:not([disabled]){background:#F5F7FD;}
+.rn-arr[disabled]{opacity:.3;cursor:default;pointer-events:none;}
+.rn-main{font-size:11px;font-weight:800;color:#1A202C;display:block;text-align:center;}
+.rn-sub{font-size:9px;color:#A0AABF;display:block;text-align:center;margin-top:1px;}
+
+/* ── TOOLTIP ─────────────────────── */
+.tt{position:fixed;background:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 4px 20px rgba(0,0,0,0.14);pointer-events:none;opacity:0;transition:opacity .1s;z-index:999;min-width:168px;}
+.tt.show{opacity:1;}
+.ttn{font-size:12px;font-weight:800;color:#1A202C;margin-bottom:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.ttlb{font-size:9px;font-weight:800;padding:2px 5px;border-radius:5px;}
+.ttr{display:flex;align-items:center;justify-content:space-between;padding:1.5px 0;gap:10px;}
+.ttk{color:#A0AABF;font-size:10px;}
+.ttv{font-weight:700;font-size:10px;}
+.ttdiv{height:1px;background:#EEF0F9;margin:5px 0;}
+.ttpos{color:#10B981;font-weight:800;font-size:10px;}
+.ttneg{color:#EF4444;font-weight:800;font-size:10px;}
+
+/* ── DASHBOARD ───────────────────── */
+.dash{width:0;flex-shrink:0;background:#fff;border-left:1px solid #EAECF5;overflow:hidden;transition:width .28s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;}
+.dash.open{width:308px;}
+.dbody{width:308px;flex:1;overflow-y:auto;overflow-x:hidden;}
+.dbody::-webkit-scrollbar{width:3px;}
+.dbody::-webkit-scrollbar-thumb{background:#E4E8F5;border-radius:2px;}
+.dhdr{padding:14px 16px 12px;border-bottom:1px solid #EAECF5;display:flex;align-items:flex-start;gap:8px;}
+.dstn{flex:1;}
+.dname{font-size:16px;font-weight:900;color:#1A202C;letter-spacing:-.5px;}
+.dlines{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+.ltag{font-size:9px;font-weight:800;padding:2px 7px;border-radius:7px;}
+.dclose{width:24px;height:24px;border:none;background:#F5F7FD;border-radius:6px;cursor:pointer;color:#8A95AC;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.dsec{padding:12px 16px;border-bottom:1px solid #EAECF5;}
+.dst{font-size:9px;font-weight:800;color:#A0AABF;letter-spacing:.7px;text-transform:uppercase;margin-bottom:9px;}
+.mhl{background:linear-gradient(135deg,#3B6DFF,#6B8FFF);border-radius:12px;padding:13px 15px;position:relative;overflow:hidden;}
+.mhl::after{content:'';position:absolute;right:-12px;top:-12px;width:75px;height:75px;border-radius:50%;background:rgba(255,255,255,0.07);}
+.mhlabel{font-size:9px;color:rgba(255,255,255,0.7);font-weight:700;margin-bottom:2px;}
+.mhval{font-size:24px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1;}
+.mhval span{font-size:12px;opacity:.7;margin-left:2px;}
+.mhsub{font-size:9px;color:rgba(255,255,255,0.6);margin-top:2px;}
+.chwrap{display:flex;align-items:center;gap:12px;}
+.piegend{flex:1;display:flex;flex-direction:column;gap:3px;}
+.lrow{display:flex;align-items:center;gap:6px;}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.lname{font-size:11px;color:#4A5568;font-weight:600;flex:1;}
+.lpct{font-size:10px;color:#A0AABF;font-weight:700;}
+.lbw{margin:1px 0 4px 13px;height:2px;background:#EEF0F9;border-radius:1px;}
+.lbf{height:100%;border-radius:1px;}
+.barchart{display:flex;flex-direction:column;gap:8px;}
+.brow{display:flex;align-items:center;gap:8px;}
+.blabel{font-size:10px;color:#4A5568;font-weight:700;min-width:28px;}
+.btrack{flex:1;height:6px;background:#EEF0F9;border-radius:3px;overflow:hidden;}
+.bfill{height:100%;border-radius:3px;background:linear-gradient(90deg,#3B6DFF,#7B9FFF);}
+.bcount{font-size:10px;color:#A0AABF;font-weight:700;min-width:44px;text-align:right;}
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.aitem{padding:8px 9px;background:#F8F9FF;border-radius:8px;border:1px solid #EEF0F9;}
+.akey{font-size:9px;color:#A0AABF;font-weight:700;margin-bottom:2px;}
+.aval{font-size:11px;color:#1A202C;font-weight:800;}
+.simtabs{display:flex;gap:4px;margin-bottom:9px;}
+.simtab{flex:1;padding:5px 4px;font-size:9px;font-weight:800;text-align:center;border-radius:7px;border:1.5px solid #E4E8F5;color:#8A95AC;cursor:pointer;line-height:1.4;transition:all .15s;}
+.simtab.on{background:#EEF2FF;border-color:#3B6DFF;color:#3B6DFF;}
+.simlist{display:flex;flex-direction:column;gap:5px;}
+.simitem{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #EEF0F9;border-radius:10px;cursor:pointer;transition:all .15s;}
+.simitem:hover{border-color:#3B6DFF;background:#F8F9FF;}
+.sirank{width:18px;height:18px;border-radius:5px;background:#F5F7FD;font-size:9px;font-weight:900;color:#8A95AC;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.siinfo{flex:1;}
+.siname{font-size:11px;font-weight:800;color:#1A202C;}
+.siline{font-size:9px;color:#A0AABF;}
+.siscore{font-size:10px;font-weight:800;color:#3B6DFF;text-align:right;}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="logo">Metro<em>Lens</em></span>
+  <div class="npill on">지도 분석</div>
+  <div class="npill">역 비교</div>
+  <div class="npill">트렌드</div>
+  <div class="ml">
+    <div class="ybadge">📅 2024년</div>
+    <div class="ybadge">📍 서울시</div>
+  </div>
+</nav>
+
+<div class="main">
+
+<!-- ── SIDEBAR ──────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sb-head">
+    <span class="sb-title">검색 컬럼</span>
+    <div class="adv-wrap">
+      <span class="adv-lbl" id="advLbl">고급</span>
+      <button class="sw" id="advSw" onclick="toggleAdv()"></button>
+    </div>
+  </div>
+
+  <div class="sb-scroll" id="sbScroll">
+
+    <!-- Peak card — hidden until station selected -->
+    <div class="fsec">
+      <div class="peak-card" id="peakCard">
+        <div class="pk-head">⚡ 선택역 피크 조건</div>
+        <div class="pk-row" id="peakRow"></div>
+      </div>
+    </div>
+
+    <!-- Time range -->
+    <div class="fsec">
+      <div class="flabel">시간대 <span class="fbadge" id="tlabel">전일</span></div>
+      <div class="trow">
+        <div class="tchip" id="t1">00:00</div>
+        <span class="tsep">~</span>
+        <div class="tchip" id="t2">24:00</div>
+      </div>
+      <div class="swrap">
+        <div class="tbg"></div><div class="tfl" id="tf"></div>
+        <input type="range" class="dr" id="rs" min="0" max="24" value="0" step="1">
+        <input type="range" class="dr" id="re" min="0" max="24" value="24" step="1">
+      </div>
+    </div>
+
+    <!-- Weekday/Weekend -->
+    <div class="fsec">
+      <div class="flabel">요일</div>
+      <div class="btnrow">
+        <div class="tbtn on" onclick="excl(this)">전체</div>
+        <div class="tbtn" onclick="excl(this)">평일</div>
+        <div class="tbtn" onclick="excl(this)">주말</div>
+      </div>
+    </div>
+
+    <!-- User type -->
+    <div class="fsec">
+      <div class="flabel">이용자 유형</div>
+      <div class="pgroup">
+        <div class="pill on" onclick="tpill(this)">아동</div>
+        <div class="pill on" onclick="tpill(this)">청소년</div>
+        <div class="pill on" onclick="tpill(this)">중고생</div>
+        <div class="pill on" onclick="tpill(this)">일반</div>
+        <div class="pill on" onclick="tpill(this)">우대권</div>
+      </div>
+    </div>
+
+    <!-- Boarding / Alighting -->
+    <div class="fsec">
+      <div class="flabel">승 / 하차</div>
+      <div class="btnrow">
+        <div class="tbtn on" onclick="excl(this)">전체</div>
+        <div class="tbtn" onclick="excl(this)">승차</div>
+        <div class="tbtn" onclick="excl(this)">하차</div>
+      </div>
+    </div>
+
+    <!-- Transfer -->
+    <div class="fsec">
+      <div class="flabel">환승역</div>
+      <div class="btnrow">
+        <div class="tbtn on" onclick="excl(this)">전체</div>
+        <div class="tbtn" onclick="excl(this)">환승역만</div>
+        <div class="tbtn" onclick="excl(this)">비환승</div>
+      </div>
+    </div>
+
+    <!-- Line -->
+    <div class="fsec">
+      <div class="flabel">호선</div>
+      <div class="lgrid">
+        <div class="lchip on" data-col="#0052A4" data-bg="#EBF2FF" style="color:#0052A4;border-color:#0052A4;background:#EBF2FF" onclick="tline(this)"><div class="ld" style="background:#0052A4"></div>1호선</div>
+        <div class="lchip on" data-col="#00A84D" data-bg="#EDFDF4" style="color:#00A84D;border-color:#00A84D;background:#EDFDF4" onclick="tline(this)"><div class="ld" style="background:#00A84D"></div>2호선</div>
+        <div class="lchip on" data-col="#EF7C1C" data-bg="#FFF4EC" style="color:#EF7C1C;border-color:#EF7C1C;background:#FFF4EC" onclick="tline(this)"><div class="ld" style="background:#EF7C1C"></div>3호선</div>
+        <div class="lchip on" data-col="#00A5DE" data-bg="#EBF8FD" style="color:#00A5DE;border-color:#00A5DE;background:#EBF8FD" onclick="tline(this)"><div class="ld" style="background:#00A5DE"></div>4호선</div>
+        <div class="lchip on" data-col="#996CAC" data-bg="#F5F0FA" style="color:#996CAC;border-color:#996CAC;background:#F5F0FA" onclick="tline(this)"><div class="ld" style="background:#996CAC"></div>5호선</div>
+        <div class="lchip on" data-col="#CD7C2F" data-bg="#FDF4EC" style="color:#CD7C2F;border-color:#CD7C2F;background:#FDF4EC" onclick="tline(this)"><div class="ld" style="background:#CD7C2F"></div>6호선</div>
+        <div class="lchip on" data-col="#747F00" data-bg="#F5F7E8" style="color:#747F00;border-color:#747F00;background:#F5F7E8" onclick="tline(this)"><div class="ld" style="background:#747F00"></div>7호선</div>
+        <div class="lchip on" data-col="#E6186C" data-bg="#FEF0F6" style="color:#E6186C;border-color:#E6186C;background:#FEF0F6" onclick="tline(this)"><div class="ld" style="background:#E6186C"></div>8호선</div>
+        <div class="lchip on" data-col="#7A6D55" data-bg="#F7F5F0" style="color:#7A6D55;border-color:#BDB092;background:#F7F5F0" onclick="tline(this)"><div class="ld" style="background:#BDB092"></div>9호선</div>
+      </div>
+    </div>
+
+    <!-- Passenger range -->
+    <div class="fsec">
+      <div class="flabel">승객 수 범위</div>
+      <div class="trow">
+        <div class="tchip" id="p1">0명</div>
+        <span class="tsep">~</span>
+        <div class="tchip" id="p2">10,000+</div>
+      </div>
+      <div class="swrap">
+        <div class="tbg"></div><div class="tfl" id="pf"></div>
+        <input type="range" class="dr" id="ps" min="0" max="10000" value="0" step="100">
+        <input type="range" class="dr" id="pe" min="0" max="10000" value="10000" step="100">
+      </div>
+      <div class="rlabels"><span class="rlabel">0</span><span class="rlabel">5,000</span><span class="rlabel">10,000+</span></div>
+    </div>
+
+    <!-- Column presets -->
+    <div class="fsec">
+      <div class="flabel">컬럼 선택 세트</div>
+      <div class="plist">
+        <div class="pitem" onclick="selPreset(this)"><div class="picon" style="background:#EEF2FF">🚶</div><div><div class="pname">출퇴근 패턴</div><div class="pdesc">평일 07–09·18–20시, 일반</div></div></div>
+        <div class="pitem" onclick="selPreset(this)"><div class="picon" style="background:#FDF4EC">🎉</div><div><div class="pname">주말 여가</div><div class="pdesc">주말 10–22시, 전연령</div></div></div>
+        <div class="pitem" onclick="selPreset(this)"><div class="picon" style="background:#EDFDF4">📚</div><div><div class="pname">청년·학생층</div><div class="pdesc">청소년·중고생·일반</div></div></div>
+        <div class="pitem" onclick="selPreset(this)"><div class="picon" style="background:#F5F0FA">🏥</div><div><div class="pname">교통약자</div><div class="pdesc">아동·우대권, 전시간대</div></div></div>
+      </div>
+    </div>
+
+  </div><!-- /sb-scroll -->
+
+  <!-- Advanced overlay (slides up from bottom of sidebar) -->
+  <div class="adv-overlay" id="advOverlay">
+    <div class="adv-top">
+      <div class="adv-title">⚙ 고급 분석 모드</div>
+      <div class="adv-desc">각 속성의 가중치를 설정하면 종합 점수 기준으로 역이 시각화됩니다.</div>
+    </div>
+    <div class="adv-body">
+      <div class="eq-glabel">이용량</div>
+      <div class="eq-row"><div class="eq-check on" onclick="eqToggle(this)"></div><span class="eq-name">이용자수</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="80" oninput="eqVal(this)"><span class="eq-val">80</span></div>
+
+      <div class="eq-glabel">시간 분포</div>
+      <div class="eq-row"><div class="eq-check on" onclick="eqToggle(this)"></div><span class="eq-name">피크 집중도</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="70" oninput="eqVal(this)"><span class="eq-val">70</span></div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">오전 비중</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="40" disabled oninput="eqVal(this)"><span class="eq-val off">40</span></div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">오후 비중</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="60" disabled oninput="eqVal(this)"><span class="eq-val off">60</span></div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">야간 비중</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="30" disabled oninput="eqVal(this)"><span class="eq-val off">30</span></div>
+
+      <div class="eq-glabel">이용자층 편향</div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">어린이 편향</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="50" disabled oninput="eqVal(this)"><span class="eq-val off">50</span></div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">청소년 편향</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="50" disabled oninput="eqVal(this)"><span class="eq-val off">50</span></div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">일반인 편향</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="50" disabled oninput="eqVal(this)"><span class="eq-val off">50</span></div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">노인 편향</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="50" disabled oninput="eqVal(this)"><span class="eq-val off">50</span></div>
+
+      <div class="eq-glabel">이동 방향</div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">승차 비중</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="50" disabled oninput="eqVal(this)"><span class="eq-val off">50</span></div>
+      <div class="eq-row"><div class="eq-check" onclick="eqToggle(this)"></div><span class="eq-name off">하차 비중</span><input type="range" class="eq-sl" min="0" max="100" step="10" value="50" disabled oninput="eqVal(this)"><span class="eq-val off">50</span></div>
+
+      <div class="adv-note">활성 속성의 가중치 합산으로 종합 점수를 계산합니다. 점수가 높을수록 지도에서 원이 크게 표시됩니다.</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAP ──────────────────────────────────────────── -->
+<main class="mapc">
+  <div class="mgrid"></div>
+
+  <!-- Top rank bar -->
+  <div class="rank-bar">
+    <div class="rb-card" id="rbCard">
+      <span class="rb-label">TOP</span>
+      <div class="rb-item"><div class="rdot rd1">1</div><span class="rb-name" id="rn1">강남역</span></div>
+      <div class="rb-sep"></div>
+      <div class="rb-item"><div class="rdot rd2">2</div><span class="rb-name" id="rn2">홍대입구역</span></div>
+      <div class="rb-sep"></div>
+      <div class="rb-item"><div class="rdot rd3">3</div><span class="rb-name" id="rn3">서울역</span></div>
+    </div>
+  </div>
+
+  <!-- Zoom -->
+  <div class="zctrl">
+    <button class="zbtn" onclick="doZoom(1.2)">+</button>
+    <button class="zbtn" onclick="doZoom(0.83)">−</button>
+  </div>
+
+  <!-- SVG Map -->
+  <div class="mwrap">
+    <svg id="mapSvg" viewBox="0 0 440 490" style="width:100%;height:100%;max-height:570px;cursor:default;transition:transform .3s;transform-origin:center;">
+      <polygon points="92,28 152,18 210,24 210,62 172,80 130,72 88,60" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="210,24 270,18 326,26 332,58 290,74 250,72 210,62" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="326,26 384,32 408,60 376,82 336,80 290,74 332,58" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="44,58 92,28 88,60 100,100 68,120 38,96" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="88,60 130,72 172,80 170,116 138,136 100,128 100,100" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="172,80 210,62 250,72 254,110 222,130 186,126 170,116" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="250,72 290,74 332,80 338,114 304,132 270,128 254,110" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="332,80 376,82 408,60 420,90 408,118 376,130 338,114" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="38,96 68,120 60,160 28,180 16,148" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="68,120 100,128 138,136 130,176 90,192 58,180 60,160" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="100,128 138,136 170,116 186,126 182,168 154,186 118,180 90,192 100,150" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="186,126 222,130 254,110 270,128 262,162 232,178 194,172 182,168" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="270,128 304,132 338,114 360,132 358,168 330,180 296,176 262,162" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="338,114 376,130 408,118 424,146 410,170 376,178 360,168 360,132" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <path d="M 18,202 Q 80,192 140,202 Q 190,210 240,208 Q 300,206 360,212 Q 400,216 432,212" stroke="#BFDBFE" stroke-width="28" fill="none" stroke-linecap="round"/>
+      <path d="M 18,202 Q 80,192 140,202 Q 190,210 240,208 Q 300,206 360,212 Q 400,216 432,212" stroke="#93C5FD" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <polygon points="16,240 58,232 90,244 78,286 46,298 16,276" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="58,232 130,228 170,238 166,276 128,292 90,288 78,286" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="170,238 232,234 264,242 262,280 226,296 188,290 166,276" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="264,242 316,238 350,244 352,280 318,296 282,292 262,280" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="350,244 410,238 432,250 430,284 400,298 360,296 352,280" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="16,276 78,286 70,330 38,348 14,320" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="78,286 166,276 188,290 180,338 130,356 70,348 70,330" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="188,290 262,280 282,292 276,346 226,362 180,352 180,338" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="282,292 352,280 360,296 358,344 316,360 282,358 276,346" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="360,296 430,284 434,318 420,360 374,364 358,344" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="38,348 130,356 120,400 72,416 28,390" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="130,356 226,362 220,408 160,424 120,416 120,400" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="226,362 316,360 310,412 256,428 220,424 220,408" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <polygon points="316,360 420,360 416,410 362,430 310,428 310,412" fill="white" stroke="#DCE2F0" stroke-width="1.2"/>
+      <g id="stLayer"></g>
+    </svg>
+  </div>
+
+  <!-- Bottom rank nav -->
+  <div class="rank-nav">
+    <button class="rn-arr" id="rnPrev" onclick="navRank(-1)" disabled>‹</button>
+    <div>
+      <span class="rn-main" id="rnLabel">1위 ~ 3위</span>
+      <span class="rn-sub">← → 로 순위 탐색</span>
+    </div>
+    <button class="rn-arr" id="rnNext" onclick="navRank(1)">›</button>
+  </div>
+</main>
+
+<!-- ── DASHBOARD ────────────────────────────────────── -->
+<aside class="dash" id="dash">
+  <div class="dbody" id="dbody"></div>
+</aside>
+
+</div><!-- /main -->
+<div class="tt" id="tt"></div>
+
+<script>
+const LC = {'1호선':'#0052A4','2호선':'#00A84D','3호선':'#EF7C1C','4호선':'#00A5DE','5호선':'#996CAC','6호선':'#CD7C2F','7호선':'#747F00','8호선':'#E6186C','9호선':'#BDB092','신분당선':'#BE1522','경의중앙선':'#77C4A3','공항철도':'#4A90D9'};
+const AC = {'아동':'#F97316','청소년':'#F59E0B','중고생':'#10B981','일반':'#3B82F6','우대권':'#A78BFA'};
+
+const DATA = [
+  {id:'gangnam',name:'강남역',lines:['2호선','신분당선'],tf:true,x:218,y:315,cnt:9831,
+   hourly:[80,40,25,18,35,220,950,1480,1620,1100,680,580,490,510,590,720,1840,1500,890,580,380,260,170,110],
+   wdr:1.0,wkr:0.65,age:{아동:15,청소년:10,중고생:8,일반:55,우대권:12},
+   attr:{구:'강남구',개통:'1982년',출구:'13개',노선:'2개'},
+   simPat:[{name:'역삼역',lines:'2호선',pct:96},{name:'선릉역',lines:'2호선',pct:92},{name:'교대역',lines:'2·3호선',pct:88}]},
+  {id:'hongdae',name:'홍대입구역',lines:['2호선','경의중앙선','공항철도'],tf:true,x:118,y:175,cnt:8245,
+   hourly:[200,80,40,28,40,120,490,780,920,740,640,680,660,700,690,770,1090,1390,1650,1570,1190,790,490,295],
+   wdr:0.85,wkr:1.0,age:{아동:10,청소년:28,중고생:22,일반:35,우대권:5},
+   attr:{구:'마포구',개통:'2000년',출구:'8개',노선:'3개'},
+   simPat:[{name:'합정역',lines:'2·6호선',pct:93},{name:'신촌역',lines:'2호선',pct:89},{name:'이대역',lines:'2호선',pct:84}]},
+  {id:'seoul',name:'서울역',lines:['1호선','4호선','공항철도'],tf:true,x:172,y:210,cnt:8100,
+   hourly:[100,50,30,20,80,400,1100,1440,1520,980,620,555,475,515,575,655,1380,1200,820,555,360,238,158,108],
+   wdr:1.0,wkr:0.58,age:{아동:12,청소년:8,중고생:6,일반:52,우대권:22},
+   attr:{구:'중구',개통:'1974년',출구:'14개',노선:'3개'},
+   simPat:[{name:'시청역',lines:'1·2호선',pct:91},{name:'종각역',lines:'1호선',pct:87},{name:'동대문역',lines:'1·4호선',pct:82}]},
+  {id:'sindorim',name:'신도림역',lines:['1호선','2호선'],tf:true,x:78,y:298,cnt:7600,
+   hourly:[60,30,18,14,58,375,1190,1820,1690,945,555,475,415,455,515,635,1540,1345,775,495,315,198,128,78],
+   wdr:1.0,wkr:0.52,age:{아동:14,청소년:12,중고생:10,일반:50,우대권:14},
+   attr:{구:'구로구',개통:'1974년',출구:'7개',노선:'2개'},
+   simPat:[{name:'구로역',lines:'1호선',pct:90},{name:'대림역',lines:'2·7호선',pct:86},{name:'영등포역',lines:'1호선',pct:82}]},
+  {id:'jamsil',name:'잠실역',lines:['2호선','8호선'],tf:true,x:352,y:265,cnt:7452,
+   hourly:[78,38,19,14,28,148,595,975,1095,815,635,595,545,575,635,775,1410,1275,1145,895,645,418,248,128],
+   wdr:0.9,wkr:1.0,age:{아동:18,청소년:15,중고생:12,일반:44,우대권:11},
+   attr:{구:'송파구',개통:'1980년',출구:'12개',노선:'2개'},
+   simPat:[{name:'석촌역',lines:'8·9호선',pct:88},{name:'종합운동장역',lines:'2호선',pct:83},{name:'잠실나루역',lines:'2호선',pct:79}]},
+  {id:'sadang',name:'사당역',lines:['2호선','4호선'],tf:true,x:186,y:350,cnt:6800,
+   hourly:[50,24,14,9,48,318,1045,1375,1258,816,518,448,398,418,478,598,1178,1048,738,478,298,178,108,63],
+   wdr:1.0,wkr:0.6,age:{아동:11,청소년:9,중고생:8,일반:56,우대권:16},
+   attr:{구:'동작구',개통:'1984년',출구:'6개',노선:'2개'},
+   simPat:[{name:'방배역',lines:'2호선',pct:87},{name:'이수역',lines:'4·7호선',pct:84},{name:'낙성대역',lines:'2호선',pct:79}]},
+  {id:'sinchon',name:'신촌역',lines:['2호선'],tf:false,x:148,y:183,cnt:5890,
+   hourly:[148,58,29,18,29,78,348,578,678,618,578,638,618,658,638,698,978,1088,1178,1118,898,598,348,198],
+   wdr:0.8,wkr:1.0,age:{아동:8,청소년:30,중고생:24,일반:34,우대권:4},
+   attr:{구:'서대문구',개통:'1984년',출구:'6개',노선:'1개'},
+   simPat:[{name:'이대역',lines:'2호선',pct:94},{name:'홍대입구역',lines:'2호선',pct:89},{name:'합정역',lines:'2·6호선',pct:83}]},
+  {id:'seongsu',name:'성수역',lines:['2호선'],tf:false,x:295,y:152,cnt:4786,
+   hourly:[39,19,9,7,19,79,278,696,754,618,478,448,418,438,478,558,840,778,678,518,358,228,138,68],
+   wdr:1.0,wkr:0.68,age:{아동:35,청소년:12,중고생:18,일반:28,우대권:7},
+   attr:{구:'성동구',개통:'1994년',출구:'4개',노선:'1개'},
+   simPat:[{name:'뚝섬역',lines:'2호선',pct:91},{name:'건대입구역',lines:'2·7호선',pct:87},{name:'왕십리역',lines:'2호선',pct:82}]},
+  {id:'jongno3',name:'종로3가역',lines:['1호선','3호선','5호선'],tf:true,x:212,y:158,cnt:4200,
+   hourly:[38,18,11,7,19,118,378,618,718,838,898,878,858,848,818,778,658,578,518,438,338,238,138,68],
+   wdr:0.95,wkr:1.0,age:{아동:5,청소년:4,중고생:4,일반:48,우대권:39},
+   attr:{구:'종로구',개통:'1974년',출구:'15개',노선:'3개'},
+   simPat:[{name:'종각역',lines:'1호선',pct:90},{name:'안국역',lines:'3호선',pct:85},{name:'광화문역',lines:'5호선',pct:80}]},
+  {id:'itaewon',name:'이태원역',lines:['6호선'],tf:false,x:196,y:250,cnt:3214,
+   hourly:[78,38,19,11,17,43,118,208,258,278,298,318,338,358,358,378,418,478,588,678,618,538,378,198],
+   wdr:0.7,wkr:1.0,age:{아동:8,청소년:20,중고생:18,일반:48,우대권:6},
+   attr:{구:'용산구',개통:'2000년',출구:'4개',노선:'1개'},
+   simPat:[{name:'녹사평역',lines:'6호선',pct:92},{name:'한강진역',lines:'6호선',pct:88},{name:'약수역',lines:'3·6호선',pct:81}]},
+  {id:'hapjeong',name:'합정역',lines:['2호선','6호선'],tf:true,x:90,y:208,cnt:3100,
+   hourly:[58,23,11,7,13,48,178,338,418,378,348,378,358,378,378,418,588,638,678,618,478,318,178,88],
+   wdr:0.82,wkr:1.0,age:{아동:12,청소년:24,중고생:20,일반:38,우대권:6},
+   attr:{구:'마포구',개통:'1994년',출구:'8개',노선:'2개'},
+   simPat:[{name:'홍대입구역',lines:'2호선',pct:93},{name:'망원역',lines:'6호선',pct:89},{name:'성산역',lines:'6호선',pct:84}]},
+  {id:'seocho',name:'서초역',lines:['2호선'],tf:false,x:200,y:305,cnt:2800,
+   hourly:[24,11,7,4,13,118,478,608,568,458,338,298,278,288,308,378,538,518,478,378,258,158,88,43],
+   wdr:1.0,wkr:0.55,age:{아동:10,청소년:6,중고생:5,일반:63,우대권:16},
+   attr:{구:'서초구',개통:'1984년',출구:'7개',노선:'1개'},
+   simPat:[{name:'교대역',lines:'2·3호선',pct:91},{name:'방배역',lines:'2호선',pct:87},{name:'강남역',lines:'2호선',pct:82}]}
+];
+
+let RANKED = [...DATA].sort((a,b) => b.cnt - a.cnt);
+const PAGES = Math.ceil(RANKED.length / 3);
+let selId = null, rankPg = 0, zl = 1, advOn = false, simTab = 0;
+
+// ── SCORE ENGINE (고급 모드) ───────────────────────────
+function computeScores(){
+  // read eq rows: [{dim, weight, active}]
+  const eqRows = document.querySelectorAll('.adv-body .eq-row');
+  const dims = [];
+  eqRows.forEach(row=>{
+    const ck=row.querySelector('.eq-check');
+    const sl=row.querySelector('.eq-sl');
+    const nm=row.querySelector('.eq-name');
+    if(!ck||!sl||!nm) return;
+    dims.push({name:nm.textContent.trim(), w:+sl.value, on:ck.classList.contains('on')});
+  });
+  const activeDims = dims.filter(d=>d.on&&d.w>0);
+  if(!activeDims.length) return null; // fallback to cnt
+
+  // compute raw score per station
+  const totalW = activeDims.reduce((a,d)=>a+d.w,0)||1;
+  const raw = DATA.map(s=>{
+    const tot = s.hourly.reduce((a,b)=>a+b,0)||1;
+    const morning = s.hourly.slice(6,12).reduce((a,b)=>a+b,0)/tot;
+    const afternoon = s.hourly.slice(12,18).reduce((a,b)=>a+b,0)/tot;
+    const night = s.hourly.slice(18,24).reduce((a,b)=>a+b,0)/tot;
+    const peak = Math.max(...s.hourly)/tot;
+    let score = 0;
+    activeDims.forEach(d=>{
+      let v = 0;
+      const dn = d.name;
+      if(dn==='이용자수')    v = s.cnt/10000;
+      else if(dn==='피크 집중도') v = peak*3;
+      else if(dn==='오전 비중')   v = morning;
+      else if(dn==='오후 비중')   v = afternoon;
+      else if(dn==='야간 비중')   v = night;
+      else if(dn==='어린이 편향') v = (s.age['아동']||0)/100;
+      else if(dn==='청소년 편향') v = (s.age['청소년']||0)/100;
+      else if(dn==='일반인 편향') v = (s.age['일반']||0)/100;
+      else if(dn==='노인 편향')   v = (s.age['우대권']||0)/100;
+      else if(dn==='승차 비중')   v = 0.5;
+      else if(dn==='하차 비중')   v = 0.5;
+      score += (d.w/totalW) * Math.min(1, v);
+    });
+    return {id:s.id, score};
+  });
+
+  // normalize 0~100
+  const maxS = Math.max(...raw.map(r=>r.score))||1;
+  const scoreMap = {};
+  raw.forEach(r=>{ scoreMap[r.id] = r.score/maxS; });
+  return scoreMap;
+}
+
+// ── MAP ────────────────────────────────────────────────
+function renderMap(){
+  const g = document.getElementById('stLayer'); g.innerHTML = '';
+  const NS = 'http://www.w3.org/2000/svg';
+
+  // determine value per station (cnt or score)
+  let valMap = null;
+  if(advOn){
+    valMap = computeScores(); // null if no active dims
+    if(valMap){
+      // re-rank by score
+      RANKED = [...DATA].sort((a,b)=>(valMap[b.id]||0)-(valMap[a.id]||0));
+    } else {
+      RANKED = [...DATA].sort((a,b)=>b.cnt-a.cnt);
+    }
+  } else {
+    RANKED = [...DATA].sort((a,b)=>b.cnt-a.cnt);
+  }
+
+  const pgStart = rankPg * 3;
+  const pgIds = RANKED.slice(pgStart, pgStart+3).map(s => s.id);
+
+  // bubble radius: sqrt scaling
+  const getVal = s => valMap ? (valMap[s.id]||0) : s.cnt;
+  const mx = Math.max(...DATA.map(s=>getVal(s)))||1;
+
+  DATA.forEach(s => {
+    const r = 10 + (28-10) * Math.sqrt(getVal(s)/mx);
+    const isSel = selId === s.id;
+    const inPg = pgIds.includes(s.id);
+    const gRank = RANKED.findIndex(x => x.id===s.id)+1;
+    const lRank = pgIds.indexOf(s.id)+1;
+
+    if(isSel){
+      const rip = document.createElementNS(NS,'circle');
+      rip.setAttribute('cx',s.x); rip.setAttribute('cy',s.y); rip.setAttribute('r',r+8);
+      rip.setAttribute('fill','rgba(255,71,87,0.08)');
+      rip.innerHTML=`<animate attributeName="r" values="${r+8};${r+22};${r+8}" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;0;.6" dur="2.2s" repeatCount="indefinite"/>`;
+      g.appendChild(rip);
+    }
+
+    const c = document.createElementNS(NS,'circle');
+    c.setAttribute('cx',s.x); c.setAttribute('cy',s.y); c.setAttribute('r',r);
+    c.setAttribute('fill', isSel?'#FF4757':'#3B6DFF');
+    c.setAttribute('opacity', String(isSel?1 : inPg?0.85 : 0.42));
+    if(inPg&&!isSel){c.setAttribute('stroke','#3B6DFF');c.setAttribute('stroke-width','2');c.setAttribute('stroke-opacity','0.5');}
+    c.style.cursor='pointer';
+    c.addEventListener('click',()=>clickSt(s.id));
+    c.addEventListener('mouseenter',e=>showTT(e,s,gRank));
+    c.addEventListener('mousemove',moveTT);
+    c.addEventListener('mouseleave',hideTT);
+    g.appendChild(c);
+
+    if(inPg&&!isSel){
+      const cols=['#F59E0B','#9CA3AF','#B45309'];
+      const bx=s.x+r*.62, by=s.y-r*.62;
+      const bg=document.createElementNS(NS,'circle');
+      bg.setAttribute('cx',bx);bg.setAttribute('cy',by);bg.setAttribute('r',9);
+      bg.setAttribute('fill',cols[lRank-1]||'#9CA3AF');g.appendChild(bg);
+      const bt=document.createElementNS(NS,'text');
+      bt.setAttribute('x',bx);bt.setAttribute('y',by+3.5);
+      bt.setAttribute('text-anchor','middle');bt.setAttribute('font-size','8');
+      bt.setAttribute('fill','white');bt.setAttribute('font-weight','900');
+      bt.setAttribute('font-family','Noto Sans KR,sans-serif');
+      bt.setAttribute('pointer-events','none');
+      bt.textContent=String(pgStart+lRank);g.appendChild(bt);
+    }
+
+    const lbl=document.createElementNS(NS,'text');
+    lbl.setAttribute('x',s.x);lbl.setAttribute('y',s.y+r+12);
+    lbl.setAttribute('text-anchor','middle');lbl.setAttribute('font-size','9');
+    lbl.setAttribute('fill',isSel?'#FF4757':'#8A95AC');
+    lbl.setAttribute('font-weight',isSel?'900':'500');
+    lbl.setAttribute('font-family','Noto Sans KR,sans-serif');
+    lbl.setAttribute('pointer-events','none');lbl.textContent=s.name;g.appendChild(lbl);
+  });
+}
+
+// ── RANK NAV ───────────────────────────────────────────
+function updateRankBar(){
+  const pg = RANKED.slice(rankPg*3, rankPg*3+3);
+  ['rn1','rn2','rn3'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent = pg[i]?pg[i].name:'—';
+  });
+  const lbl=advOn?'고급점수':'이용자수';
+  document.getElementById('rbCard').title=`기준: ${lbl}`;
+}
+
+function navRank(dir){
+  rankPg = Math.max(0, Math.min(PAGES-1, rankPg+dir));
+  document.getElementById('rnPrev').disabled = rankPg===0;
+  document.getElementById('rnNext').disabled = rankPg===PAGES-1;
+  const s=rankPg*3+1, e=Math.min(s+2,RANKED.length);
+  document.getElementById('rnLabel').textContent=`${s}위 ~ ${e}위`;
+  updateRankBar(); renderMap();
+}
+
+// ── STATION CLICK ──────────────────────────────────────
+function clickSt(id){
+  if(selId===id){selId=null;closeDash();return;}
+  selId=id; renderMap(); showPeakCard(id); renderDash(id);
+  document.getElementById('dash').classList.add('open');
+}
+function closeDash(){
+  selId=null;
+  document.getElementById('dash').classList.remove('open');
+  document.getElementById('peakCard').classList.remove('show');
+  renderMap();
+}
+
+// ── PEAK CARD ──────────────────────────────────────────
+function showPeakCard(id){
+  const s=DATA.find(d=>d.id===id); if(!s) return;
+  const maxH=Math.max(...s.hourly);
+  const ph=s.hourly.indexOf(maxH);
+  const day=s.wdr>=s.wkr?'평일':'주말';
+  document.getElementById('peakRow').innerHTML=
+    `<span class="pk-tag">${String(ph).padStart(2,'0')}:00~${String(ph+1).padStart(2,'0')}:00</span>
+     <span class="pk-tag">${day} 최다</span>
+     <span class="pk-count">${maxH.toLocaleString()}명</span>`;
+  document.getElementById('peakCard').classList.add('show');
+}
+
+// ── DASHBOARD ──────────────────────────────────────────
+function renderDash(id){
+  const s=DATA.find(d=>d.id===id); if(!s) return;
+  const C=2*Math.PI*38; let off=0;
+  const ageK=['아동','일반','중고생','청소년','우대권'];
+  const pie=ageK.map(k=>{
+    const pct=s.age[k]||0, len=C*pct/100;
+    const seg=`<circle cx="46" cy="46" r="38" fill="none" stroke="${AC[k]}" stroke-width="15" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 46 46)"/>`;
+    off+=len; return seg;
+  }).join('');
+  const pieSvg=`<svg viewBox="0 0 92 92" width="86" height="86">${pie}<circle cx="46" cy="46" r="29" fill="white"/><text x="46" y="43" text-anchor="middle" font-size="8" fill="#A0AABF" font-family="Noto Sans KR,sans-serif">총계</text><text x="46" y="55" text-anchor="middle" font-size="11" fill="#1A202C" font-weight="800" font-family="Noto Sans KR,sans-serif">${(s.cnt/1000).toFixed(1)}K</text></svg>`;
+  const legend=ageK.map(k=>`<div class="lrow"><div class="ldot" style="background:${AC[k]}"></div><span class="lname">${k}</span><span class="lpct">${s.age[k]||0}%</span></div><div class="lbw"><div class="lbf" style="width:${s.age[k]||0}%;background:${AC[k]}"></div></div>`).join('');
+  const top3=[...s.hourly.map((v,i)=>({h:i,v}))].sort((a,b)=>b.v-a.v).slice(0,3);
+  const mxV=top3[0].v;
+  const bars=top3.map(t=>`<div class="brow"><span class="blabel">${String(t.h).padStart(2,'0')}시</span><div class="btrack"><div class="bfill" style="width:${Math.round(t.v/mxV*100)}%"></div></div><span class="bcount">${t.v.toLocaleString()}명</span></div>`).join('');
+  const attrs=Object.entries(s.attr).map(([k,v])=>`<div class="aitem"><div class="akey">${k}</div><div class="aval">${v}</div></div>`).join('');
+  const ltags=s.lines.map(l=>`<span class="ltag" style="background:${LC[l]||'#888'}22;color:${LC[l]||'#888'}">${l}</span>`).join('');
+  const rank=RANKED.findIndex(x=>x.id===id)+1;
+  const avg=Math.round(DATA.reduce((a,b)=>a+b.cnt,0)/DATA.length);
+  const diff=((s.cnt-avg)/avg*100).toFixed(0);
+  document.getElementById('dbody').innerHTML=`
+    <div class="dhdr"><div class="dstn"><div class="dname">${s.name}</div><div class="dlines">${ltags}</div></div><button class="dclose" onclick="closeDash()">✕</button></div>
+    <div class="dsec"><div class="dst">선택 조건 이용자 수</div>
+      <div class="mhl"><div class="mhlabel">조건 반영 합산 방문객</div><div class="mhval">${s.cnt.toLocaleString()}<span>명</span></div><div class="mhsub">전체 ${rank}위 · 평균 대비 ${s.cnt>avg?'+':''}${diff}%</div></div></div>
+    <div class="dsec"><div class="dst">승객 유형별 분포</div><div class="chwrap">${pieSvg}<div class="piegend">${legend}</div></div></div>
+    <div class="dsec"><div class="dst">시간대별 이용자 Top 3</div><div class="barchart">${bars}</div></div>
+    <div class="dsec"><div class="dst">역 속성</div><div class="agrid">${attrs}</div></div>
+    <div class="dsec" style="border-bottom:none"><div class="dst">유사 역 추천</div>
+      <div class="simtabs">
+        <div class="simtab ${simTab===0?'on':''}" onclick="swSim(0)">패턴 유사</div>
+        <div class="simtab ${simTab===1?'on':''}" onclick="swSim(1)">가까운 역</div>
+        <div class="simtab ${simTab===2?'on':''}" onclick="swSim(2)">규모 유사</div>
+      </div>
+      <div class="simlist" id="simList">${simHtml(s)}</div>
+    </div>`;
+}
+
+function simHtml(s){
+  if(simTab===0){
+    return s.simPat.map((sm,i)=>`<div class="simitem" onclick="simClick('${sm.name}')"><div class="sirank">${i+1}</div><div class="siinfo"><div class="siname">${sm.name}</div><div class="siline">${sm.lines}</div></div><div class="siscore">${sm.pct}%</div></div>`).join('');
+  }else if(simTab===1){
+    const nearby=[...DATA].filter(d=>d.id!==s.id).map(d=>{const dx=d.x-s.x,dy=d.y-s.y;return{...d,km:(Math.sqrt(dx*dx+dy*dy)*0.084).toFixed(1)};}).sort((a,b)=>parseFloat(a.km)-parseFloat(b.km)).slice(0,3);
+    return nearby.map((d,i)=>`<div class="simitem" onclick="clickSt('${d.id}')"><div class="sirank">${i+1}</div><div class="siinfo"><div class="siname">${d.name}</div><div class="siline">${d.lines.join('·')}</div></div><div class="siscore">~${d.km}km</div></div>`).join('');
+  }else{
+    const by=[...DATA].filter(d=>d.id!==s.id).map(d=>({...d,diff:Math.abs(d.cnt-s.cnt)})).sort((a,b)=>a.diff-b.diff).slice(0,3);
+    return by.map((d,i)=>{const r=RANKED.findIndex(x=>x.id===d.id)+1;return`<div class="simitem" onclick="clickSt('${d.id}')"><div class="sirank">${i+1}</div><div class="siinfo"><div class="siname">${d.name}</div><div class="siline">전체 ${r}위</div></div><div class="siscore">${d.cnt.toLocaleString()}명</div></div>`;}).join('');
+  }
+}
+
+function simClick(name){const s=DATA.find(d=>d.name===name);if(s)clickSt(s.id);}
+function swSim(t){simTab=t;const s=DATA.find(d=>d.id===selId);if(!s)return;document.querySelectorAll('.simtab').forEach((el,i)=>el.classList.toggle('on',i===t));document.getElementById('simList').innerHTML=simHtml(s);}
+
+// ── TOOLTIP ────────────────────────────────────────────
+function showTT(e,s,gr){
+  const tt=document.getElementById('tt');
+  const sel=selId?DATA.find(d=>d.id===selId):null;
+  const diff=sel&&sel.id!==s.id?s.cnt-sel.cnt:null;
+  const lb=s.lines.slice(0,1).map(l=>`<span class="ttlb" style="background:${LC[l]||'#888'}22;color:${LC[l]||'#888'}">${l}</span>`).join('');
+  let distStr='';
+  if(sel&&sel.id!==s.id){const dx=s.x-sel.x,dy=s.y-sel.y;const km=(Math.sqrt(dx*dx+dy*dy)*0.084).toFixed(1);distStr=`<div class="ttr"><span class="ttk">${sel.name}까지</span><span class="ttv">~${km}km</span></div>`;}
+  let diffStr='';
+  if(diff!==null){const sign=diff>0?'+':'';const cl=diff>0?'ttpos':'ttneg';diffStr=`<div class="ttdiv"></div><div class="ttr"><span class="ttk">선택역 대비</span><span class="${cl}">${sign}${diff.toLocaleString()}명</span></div>`;}
+  let scoreStr='';
+  if(advOn){const sm=computeScores();if(sm){const sv=Math.round((sm[s.id]||0)*100);scoreStr=`<div class="ttr"><span class="ttk">고급 점수</span><span class="ttv" style="color:#3B6DFF;font-weight:900">${sv}점</span></div>`;}}
+  tt.innerHTML=`<div class="ttn">${s.name} ${lb}</div><div class="ttr"><span class="ttk">이용자 수</span><span class="ttv">${s.cnt.toLocaleString()}명</span></div>${scoreStr}<div class="ttr"><span class="ttk">현재 순위</span><span class="ttv">#${gr}</span></div>${distStr}${diffStr}${s.tf?'<div class="ttr"><span class="ttk">환승역</span><span class="ttv" style="color:#10B981">✓</span></div>':''}`;
+  tt.classList.add('show');moveTT(e);
+}
+function moveTT(e){const tt=document.getElementById('tt');tt.style.left=(e.clientX+14)+'px';tt.style.top=(e.clientY-10)+'px';}
+function hideTT(){document.getElementById('tt').classList.remove('show');}
+
+// ── ADVANCED ───────────────────────────────────────────
+function toggleAdv(){
+  advOn=!advOn;
+  document.getElementById('advSw').classList.toggle('on',advOn);
+  document.getElementById('advLbl').classList.toggle('on',advOn);
+  document.getElementById('advOverlay').classList.toggle('show',advOn);
+  rankPg=0;
+  document.getElementById('rnPrev').disabled=true;
+  document.getElementById('rnNext').disabled=PAGES<=1;
+  updateRankBar(); renderMap();
+}
+function eqToggle(el){
+  el.classList.toggle('on');
+  const row=el.closest('.eq-row');
+  const sl=row.querySelector('.eq-sl');
+  const nm=row.querySelector('.eq-name');
+  const vl=row.querySelector('.eq-val');
+  const on=el.classList.contains('on');
+  sl.disabled=!on; nm.classList.toggle('off',!on); vl.classList.toggle('off',!on);
+  if(advOn){rankPg=0;updateRankBar();renderMap();}
+}
+function eqVal(sl){
+  const row=sl.closest('.eq-row');const v=row.querySelector('.eq-val');if(v)v.textContent=sl.value;
+  if(advOn){rankPg=0;updateRankBar();renderMap();}
+}
+
+// ── SLIDERS ────────────────────────────────────────────
+const rs=document.getElementById('rs'),re=document.getElementById('re');
+function fH(v){return String(Math.round(v)).padStart(2,'0')+':00';}
+function updT(){
+  const lo=+rs.value,hi=+re.value;
+  document.getElementById('tf').style.left=(lo/24*100)+'%';
+  document.getElementById('tf').style.width=((hi-lo)/24*100)+'%';
+  document.getElementById('t1').textContent=fH(lo);
+  document.getElementById('t2').textContent=fH(hi);
+  document.getElementById('tlabel').textContent=(lo===0&&hi===24)?'전일':`${fH(lo)}~${fH(hi)}`;
+}
+rs.addEventListener('input',function(){if(+this.value>=+re.value)this.value=+re.value-1;updT();});
+re.addEventListener('input',function(){if(+this.value<=+rs.value)this.value=+rs.value+1;updT();});
+updT();
+
+const ps=document.getElementById('ps'),pe=document.getElementById('pe');
+function fP(v){return v===0?'0명':v>=10000?'10,000+':v.toLocaleString()+'명';}
+function updP(){
+  const lo=+ps.value,hi=+pe.value;
+  document.getElementById('pf').style.left=(lo/10000*100)+'%';
+  document.getElementById('pf').style.width=((hi-lo)/10000*100)+'%';
+  document.getElementById('p1').textContent=fP(lo);
+  document.getElementById('p2').textContent=fP(hi);
+}
+ps.addEventListener('input',function(){if(+this.value>=+pe.value)this.value=+pe.value-100;updP();});
+pe.addEventListener('input',function(){if(+this.value<=+ps.value)this.value=+ps.value+100;updP();});
+updP();
+
+// ── HELPERS ────────────────────────────────────────────
+function excl(el){el.parentElement.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function tpill(el){el.classList.toggle('on');}
+function tline(el){
+  const on=el.classList.toggle('on');
+  if(on){el.style.color=el.dataset.col;el.style.borderColor=el.dataset.col;el.style.background=el.dataset.bg;}
+  else{el.style.color='#8A95AC';el.style.borderColor='#E4E8F5';el.style.background='#fff';}
+}
+function selPreset(el){el.parentElement.querySelectorAll('.pitem').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
+function doZoom(f){zl=Math.min(2.5,Math.max(0.6,zl*f));document.getElementById('mapSvg').style.transform=`scale(${zl})`;}
+
+// ── INIT ───────────────────────────────────────────────
+updateRankBar(); renderMap();
+document.getElementById('rnPrev').disabled=true;
+</script>
+</body>
+</html>
