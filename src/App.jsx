@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
+import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip as LeafletTooltip } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import './App.css'
 
 const LINE_COLORS = {
@@ -279,46 +281,174 @@ const STATIONS = [
   },
 ]
 
-const METRO_LINE_PATHS = [
-  { line: '1호선', d: 'M 8 322 C 42 313 56 300 78 298 C 116 296 134 245 172 210 C 196 188 204 166 212 158 C 242 130 284 120 334 126 C 368 130 394 120 430 105' },
-  { line: '2호선', d: 'M 90 208 C 104 184 116 172 138 176 C 165 182 184 157 212 158 C 258 160 304 174 326 210 C 352 250 354 282 318 304 C 282 326 236 327 218 315 C 204 306 197 306 186 350 C 174 390 108 350 78 298 C 60 264 70 228 90 208' },
-  { line: '3호선', d: 'M 180 18 C 192 70 194 118 212 158 C 222 184 214 222 196 250 C 181 274 204 292 200 305 C 195 322 186 350 172 382 C 160 410 168 456 176 486' },
-  { line: '4호선', d: 'M 320 0 C 330 54 302 86 250 118 C 226 134 218 150 212 158 C 196 180 182 194 172 210 C 148 250 170 306 186 350 C 200 390 182 428 168 490' },
-  { line: '5호선', d: 'M 0 148 C 42 142 70 128 104 128 C 146 126 176 144 212 158 C 252 174 288 176 330 180 C 362 184 386 158 440 162' },
-  { line: '6호선', d: 'M 28 188 C 56 208 70 214 90 208 C 128 196 158 230 196 250 C 216 260 226 222 272 178 C 300 152 340 144 392 116' },
-  { line: '7호선', d: 'M 6 402 C 48 392 42 350 84 346 C 120 342 145 366 186 350 C 226 336 236 304 276 286 C 318 268 330 232 382 218 C 404 212 420 200 440 180' },
-  { line: '8호선', d: 'M 354 216 C 350 236 344 250 352 265 C 372 302 384 334 380 344 C 368 374 372 416 398 490' },
-  { line: '9호선', d: 'M 0 238 C 32 232 38 220 58 232 C 96 254 142 230 196 250 C 222 260 234 286 262 280 C 306 270 322 250 352 265 C 376 276 400 258 440 252' },
-  { line: '신분당선', d: 'M 218 315 C 236 340 238 362 252 384 C 264 402 276 436 280 490' },
-  { line: '경의중앙선', d: 'M 0 118 C 54 138 78 166 118 175 C 150 182 150 206 172 210 C 198 216 230 204 252 210 C 282 218 306 202 330 196 C 368 186 404 190 440 202' },
-  { line: '공항철도', d: 'M 0 70 C 44 88 74 142 118 175 C 140 192 152 208 172 210 C 198 212 210 228 230 236 C 250 244 276 236 306 224' },
+const MAP_PROVIDERS = [
+  {
+    description: 'No key required; reliable for development.',
+    key: 'osm',
+    label: 'OpenStreetMap',
+    needsKey: false,
+  },
+  {
+    description: 'Korea-native base map; needs Kakao JavaScript key.',
+    key: 'kakao',
+    label: 'Kakao Maps',
+    needsKey: true,
+  },
+  {
+    description: 'Korea-native base map; needs Naver Cloud Maps key.',
+    key: 'naver',
+    label: 'Naver Maps',
+    needsKey: true,
+  },
+  {
+    description: 'Can show Google transit layer; needs Google Maps API key.',
+    key: 'google',
+    label: 'Google Transit',
+    needsKey: true,
+  },
 ]
 
-const CITY_SHAPES = [
-  'M 42 74 C 94 34 154 42 196 62 C 242 18 326 28 374 84 C 420 138 428 208 396 250 C 430 318 388 420 306 438 C 246 472 194 438 154 416 C 96 438 34 396 24 330 C -2 286 18 244 44 216 C 10 162 8 104 42 74 Z',
-  'M 34 188 C 86 160 124 174 164 198 C 222 178 276 180 326 206 C 356 218 386 206 418 188 C 438 244 410 292 372 312 C 316 342 250 326 202 306 C 152 340 92 330 54 290 C 22 256 16 222 34 188 Z',
-  'M 92 334 C 126 312 166 316 204 342 C 246 314 300 324 336 350 C 372 378 362 424 316 450 C 264 472 216 450 188 428 C 148 444 98 428 78 394 C 62 368 68 348 92 334 Z',
-]
-
-const ROAD_PATHS = [
-  'M 36 112 C 92 136 132 128 188 146 C 244 164 298 142 366 152',
-  'M 24 164 C 76 176 118 166 170 188 C 224 212 286 196 420 210',
-  'M 34 216 C 92 198 144 210 198 228 C 248 244 312 238 386 226',
-  'M 28 268 C 90 254 132 262 186 282 C 246 304 306 294 398 310',
-  'M 62 330 C 118 308 170 324 224 344 C 276 364 330 354 390 380',
-  'M 76 386 C 128 366 182 378 238 400 C 286 420 326 410 364 432',
-  'M 86 52 C 92 116 104 168 122 226 C 142 286 132 350 114 430',
-  'M 154 42 C 160 102 148 164 164 224 C 182 288 194 340 188 430',
-  'M 220 48 C 214 118 226 176 236 234 C 248 294 252 354 240 434',
-  'M 286 40 C 272 100 282 160 296 224 C 310 284 312 346 294 430',
-  'M 352 76 C 332 132 344 190 356 246 C 370 308 360 372 342 430',
-  'M 54 122 L 140 206 L 226 274 L 326 360',
-  'M 104 86 L 186 166 L 278 244 L 380 334',
-  'M 360 104 L 296 176 L 224 246 L 148 334',
-  'M 404 190 L 322 230 L 244 286 L 166 376',
-  'M 16 302 C 80 294 140 304 204 318 C 276 334 342 330 424 340',
-  'M 44 248 C 108 238 154 248 206 260 C 282 278 348 264 416 270',
-  'M 68 140 C 120 152 152 146 208 164 C 266 182 326 172 394 184',
+const GEOGRAPHIC_METRO_LINES = [
+  {
+    line: '1호선',
+    positions: [
+      [37.503178, 126.882037],
+      [37.508725, 126.891295],
+      [37.515504, 126.907628],
+      [37.517983, 126.917614],
+      [37.529849, 126.964561],
+      [37.554648, 126.972559],
+      [37.565715, 126.977088],
+      [37.570161, 126.982923],
+      [37.57042, 126.992144],
+      [37.57142, 127.009745],
+    ],
+  },
+  {
+    line: '2호선',
+    positions: [
+      [37.549463, 126.913739],
+      [37.557192, 126.925381],
+      [37.555134, 126.936893],
+      [37.556733, 126.946013],
+      [37.563588, 126.975411],
+      [37.566014, 126.982618],
+      [37.566295, 126.99191],
+      [37.566612, 127.009054],
+      [37.561159, 127.036877],
+      [37.544581, 127.055961],
+      [37.540373, 127.069191],
+      [37.513262, 127.100159],
+      [37.511687, 127.086162],
+      [37.504503, 127.049008],
+      [37.497175, 127.027926],
+      [37.497952, 127.027619],
+      [37.491897, 127.007917],
+      [37.47653, 126.981685],
+      [37.484201, 126.929715],
+      [37.508725, 126.891295],
+      [37.549463, 126.913739],
+    ],
+  },
+  {
+    line: '3호선',
+    positions: [
+      [37.576477, 126.985443],
+      [37.57042, 126.992144],
+      [37.55434, 127.010655],
+      [37.548034, 127.015872],
+      [37.504503, 127.049008],
+      [37.493415, 127.01408],
+    ],
+  },
+  {
+    line: '4호선',
+    positions: [
+      [37.656274, 127.063089],
+      [37.570926, 127.009545],
+      [37.558514, 127.005315],
+      [37.554648, 126.972559],
+      [37.47653, 126.981685],
+    ],
+  },
+  {
+    line: '5호선',
+    positions: [
+      [37.57142, 126.97674],
+      [37.566295, 126.99191],
+      [37.57042, 126.992144],
+      [37.557322, 127.029476],
+      [37.540373, 127.069191],
+      [37.517409, 127.112359],
+    ],
+  },
+  {
+    line: '6호선',
+    positions: [
+      [37.549463, 126.913739],
+      [37.539574, 126.961339],
+      [37.534488, 126.994302],
+      [37.55434, 127.010655],
+      [37.548034, 127.015872],
+    ],
+  },
+  {
+    line: '7호선',
+    positions: [
+      [37.49297, 126.895801],
+      [37.484201, 126.929715],
+      [37.486263, 126.982649],
+      [37.504503, 127.049008],
+      [37.540693, 127.07023],
+    ],
+  },
+  {
+    line: '8호선',
+    positions: [
+      [37.517409, 127.112359],
+      [37.513262, 127.100159],
+      [37.505401, 127.106946],
+      [37.478703, 127.126191],
+    ],
+  },
+  {
+    line: '9호선',
+    positions: [
+      [37.533877, 126.902011],
+      [37.516781, 126.917841],
+      [37.51336, 126.928246],
+      [37.505098, 126.961374],
+      [37.504503, 127.049008],
+      [37.511687, 127.086162],
+    ],
+  },
+  {
+    line: '신분당선',
+    positions: [
+      [37.497952, 127.027619],
+      [37.486839, 127.033194],
+      [37.470023, 127.03842],
+      [37.443581, 127.033573],
+    ],
+  },
+  {
+    line: '경의중앙선',
+    positions: [
+      [37.557192, 126.925381],
+      [37.559778, 126.942325],
+      [37.529849, 126.964561],
+      [37.561159, 127.036877],
+    ],
+  },
+  {
+    line: '공항철도',
+    positions: [
+      [37.557192, 126.925381],
+      [37.554648, 126.972559],
+      [37.542955, 126.951869],
+      [37.447464, 126.452508],
+    ],
+  },
 ]
 
 const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선', '9호선']
@@ -461,6 +591,7 @@ function App() {
   const [transfer, setTransfer] = useState('전체')
   const [activeTypes, setActiveTypes] = useState(() => new Set(USER_TYPES))
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
+  const [mapProvider, setMapProvider] = useState('osm')
   const [selectedPreset, setSelectedPreset] = useState(null)
   const [weights, setWeights] = useState(initialWeights)
   const [simTab, setSimTab] = useState(0)
@@ -588,9 +719,11 @@ function App() {
           activeLines={activeLines}
           activeTypes={activeTypes}
           boarding={boarding}
+          mapProvider={mapProvider}
           onAdvancedToggle={toggleAdvanced}
           onBoardingChange={updateChoice(setBoarding)}
           onLineToggle={toggleLine}
+          onMapProviderChange={setMapProvider}
           onPassengerRangeChange={updatePassengerRange}
           onPresetChange={applyPreset}
           onTimeRangeChange={updateTimeRange}
@@ -608,6 +741,7 @@ function App() {
         />
         <MapPanel
           advanced={advanced}
+          mapProvider={mapProvider}
           onRankNav={handleRankNav}
           onStationClick={handleStationClick}
           onTooltipHide={() => setTooltip(null)}
@@ -660,9 +794,11 @@ function Sidebar({
   activeLines,
   activeTypes,
   boarding,
+  mapProvider,
   onAdvancedToggle,
   onBoardingChange,
   onLineToggle,
+  onMapProviderChange,
   onPassengerRangeChange,
   onPresetChange,
   onTimeRangeChange,
@@ -734,6 +870,22 @@ function Sidebar({
 
         <ChoiceSection label="승 / 하차" onChange={onBoardingChange} options={['전체', '승차', '하차']} value={boarding} />
         <ChoiceSection label="환승역" onChange={onTransferChange} options={['전체', '환승역만', '비환승']} value={transfer} />
+
+        <div className="fsec">
+          <div className="flabel">지도 인터페이스</div>
+          <div className="map-provider-list">
+            {MAP_PROVIDERS.map((provider) => (
+              <button
+                className={`map-provider ${mapProvider === provider.key ? 'on' : ''}`}
+                key={provider.key}
+                onClick={() => onMapProviderChange(provider.key)}
+              >
+                <span className="mp-name">{provider.label}</span>
+                <span className="mp-desc">{provider.needsKey ? 'API key 필요' : '바로 사용 가능'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="fsec">
           <div className="flabel">호선</div>
@@ -894,6 +1046,7 @@ function AdvancedOverlay({ advanced, onWeightChange, weights }) {
 
 function MapPanel({
   advanced,
+  mapProvider,
   onRankNav,
   onStationClick,
   onTooltipHide,
@@ -910,12 +1063,10 @@ function MapPanel({
   const pageIds = pageStations.map((station) => station.id)
   const rankStart = ranked.length ? rankPage * 3 + 1 : 0
   const rankEnd = ranked.length ? Math.min(rankStart + 2, ranked.length) : 0
+  const selectedProvider = MAP_PROVIDERS.find((provider) => provider.key === mapProvider) || MAP_PROVIDERS[0]
 
   return (
-    <main className="mapc transit-mapc">
-      <div className="transit-bg">
-        <span className="schematic-water-label">한강</span>
-      </div>
+    <main className="mapc internet-mapc">
       <div className="rank-bar">
         <div className="rb-card" title={`기준: ${advanced ? '고급점수' : '이용자수'}`}>
           <span className="rb-label">TOP</span>
@@ -931,29 +1082,32 @@ function MapPanel({
         </div>
       </div>
 
-      <div className="schematic-wrap">
-        <svg className="schematic-svg" viewBox="0 0 440 490">
-          <defs>
-            <filter id="stationShadow" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="0" dy="3" floodColor="#1E3A8A" floodOpacity=".2" stdDeviation="3" />
-            </filter>
-          </defs>
-          <g className="city-shapes">
-            {CITY_SHAPES.map((shape) => <path d={shape} key={shape} />)}
-          </g>
-          <g className="road-layer">
-            {ROAD_PATHS.map((road) => <path d={road} key={road} />)}
-          </g>
-          <path className="han-river broad" d="M -12 244 C 54 206 112 238 174 230 C 246 222 286 200 344 212 C 386 220 416 204 452 188" />
-          <path className="han-river core" d="M -12 244 C 54 206 112 238 174 230 C 246 222 286 200 344 212 C 386 220 416 204 452 188" />
-          {METRO_LINE_PATHS.map((path) => {
+      {mapProvider === 'osm' ? (
+        <MapContainer
+          center={[37.535, 126.99]}
+          className="internet-map"
+          maxZoom={16}
+          minZoom={10}
+          scrollWheelZoom
+          zoom={12}
+          zoomControl
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          />
+          {GEOGRAPHIC_METRO_LINES.map((path) => {
             const lineVisible = stationMetrics.some((station) => station.visible && station.lines.includes(path.line))
             return (
-              <path
-                className={`metro-line ${lineVisible ? '' : 'muted'}`}
-                d={path.d}
+              <Polyline
                 key={path.line}
-                stroke={LINE_COLORS[path.line] || '#64748B'}
+                pathOptions={{
+                  className: lineVisible ? 'internet-metro-line' : 'internet-metro-line muted',
+                  color: LINE_COLORS[path.line] || '#64748B',
+                  opacity: lineVisible ? 0.86 : 0.13,
+                  weight: lineVisible ? 5 : 3,
+                }}
+                positions={path.positions}
               />
             )
           })}
@@ -963,67 +1117,72 @@ function MapPanel({
             const inPage = pageIds.includes(station.id)
             const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
             const localRank = pageIds.indexOf(station.id) + 1
-            const fill = selected ? '#FF4757' : inPage ? '#3B6DFF' : '#fff'
-            const stroke = selected ? '#FF4757' : station.visible ? LINE_COLORS[station.lines[0]] || '#3B6DFF' : '#CBD5E1'
-
             return (
-              <g
-                className={`schematic-station ${station.visible ? '' : 'muted'} ${selected ? 'selected' : ''}`}
-                key={station.id}
-                onClick={() => onStationClick(station.id)}
-                onMouseEnter={(event) => station.visible && onTooltipShow(event, station, globalRank)}
-                onMouseLeave={onTooltipHide}
-                onMouseMove={onTooltipMove}
-              >
-                {selected && (
-                  <circle className="station-ripple" cx={station.x} cy={station.y} r={radius + 8}>
-                    <animate attributeName="r" dur="2.2s" repeatCount="indefinite" values={`${radius + 8};${radius + 22};${radius + 8}`} />
-                    <animate attributeName="opacity" dur="2.2s" repeatCount="indefinite" values=".55;0;.55" />
-                  </circle>
-                )}
-                <circle
-                  className="station-halo"
-                  cx={station.x}
-                  cy={station.y}
-                  fill="#fff"
-                  r={radius + 4}
-                />
-                <circle
-                  className="station-node"
-                  cx={station.x}
-                  cy={station.y}
-                  fill={fill}
-                  r={radius}
-                  stroke={stroke}
-                />
-                {station.tf && <circle className="transfer-ring" cx={station.x} cy={station.y} r={radius + 7} />}
-                {inPage && !selected && (
-                  <g className="rank-badge-svg">
-                    <circle cx={station.x + radius * .74} cy={station.y - radius * .74} fill={RANK_DOT_COLORS[localRank - 1] || '#9CA3AF'} r="9" />
-                    <text x={station.x + radius * .74} y={station.y - radius * .74 + 3.5}>{rankPage * 3 + localRank}</text>
-                  </g>
-                )}
-                <text
-                  className={`station-label ${selected ? 'selected' : ''}`}
-                  x={station.x}
-                  y={station.y + radius + 15}
+              <Fragment key={station.id}>
+                <CircleMarker
+                  center={[station.lat, station.lng]}
+                  eventHandlers={{
+                    click: () => onStationClick(station.id),
+                    mousemove: (event) => onTooltipMove(event.originalEvent),
+                    mouseout: onTooltipHide,
+                    mouseover: (event) => station.visible && onTooltipShow(event.originalEvent, station, globalRank),
+                  }}
+                  pathOptions={{
+                    className: selected ? 'internet-station-marker selected' : 'internet-station-marker',
+                    color: selected ? '#FF4757' : station.visible ? LINE_COLORS[station.lines[0]] || '#3B6DFF' : '#CBD5E1',
+                    fillColor: selected ? '#FF4757' : inPage ? '#3B6DFF' : '#fff',
+                    fillOpacity: station.visible ? selected ? 0.94 : inPage ? 0.82 : 0.72 : 0.16,
+                    opacity: station.visible ? 1 : 0.2,
+                    weight: selected || inPage ? 3 : 2,
+                  }}
+                  radius={Math.max(5, radius)}
                 >
-                  {station.name}
-                </text>
-              </g>
+                  {station.visible && (
+                    <LeafletTooltip direction="bottom" offset={[0, radius + 5]} opacity={1} permanent>
+                      <span className={selected ? 'map-station-label selected' : 'map-station-label'}>{station.name}</span>
+                    </LeafletTooltip>
+                  )}
+                </CircleMarker>
+                {inPage && !selected && (
+                  <CircleMarker
+                    center={[station.lat + 0.0022, station.lng + 0.0024]}
+                    interactive={false}
+                    pathOptions={{
+                      color: '#fff',
+                      fillColor: RANK_DOT_COLORS[localRank - 1] || '#9CA3AF',
+                      fillOpacity: 1,
+                      opacity: 1,
+                      weight: 2,
+                    }}
+                    radius={9}
+                  >
+                    <LeafletTooltip className="rank-badge-tip" direction="center" opacity={1} permanent>
+                      <span className="rank-badge">{rankPage * 3 + localRank}</span>
+                    </LeafletTooltip>
+                  </CircleMarker>
+                )}
+              </Fragment>
             )
           })}
-        </svg>
-      </div>
+        </MapContainer>
+      ) : (
+        <div className="map-provider-placeholder">
+          <div className="provider-card">
+            <div className="provider-title">{selectedProvider.label}</div>
+            <div className="provider-copy">{selectedProvider.description}</div>
+            <code>{mapProvider === 'kakao' ? 'VITE_KAKAO_MAP_KEY' : mapProvider === 'naver' ? 'VITE_NAVER_MAP_CLIENT_ID' : 'VITE_GOOGLE_MAPS_API_KEY'}</code>
+          </div>
+        </div>
+      )}
       <div className="metro-legend">
-        {METRO_LINE_PATHS.slice(0, 9).map((path) => (
+        {GEOGRAPHIC_METRO_LINES.slice(0, 9).map((path) => (
           <span className="metro-legend-item" key={path.line}>
             <span className="metro-legend-dot" style={{ background: LINE_COLORS[path.line] }} />
             {path.line}
           </span>
         ))}
       </div>
-      <div className="map-attribution">Geographic transit overlay · Filters update station visibility and rank</div>
+      <div className="map-attribution">{selectedProvider.label} · Zoom and pan enabled</div>
 
       <div className="rank-nav">
         <button className="rn-arr" disabled={rankPage === 0} onClick={() => onRankNav(-1)}>‹</button>
