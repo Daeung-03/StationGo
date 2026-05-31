@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip as LeafletTooltip, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import './App.css'
 
 const LINE_COLORS = {
@@ -32,6 +34,8 @@ const STATIONS = [
     tf: true,
     x: 218,
     y: 315,
+    lat: 37.497952,
+    lng: 127.027619,
     cnt: 9831,
     hourly: [80, 40, 25, 18, 35, 220, 950, 1480, 1620, 1100, 680, 580, 490, 510, 590, 720, 1840, 1500, 890, 580, 380, 260, 170, 110],
     wdr: 1.0,
@@ -51,6 +55,8 @@ const STATIONS = [
     tf: true,
     x: 118,
     y: 175,
+    lat: 37.557192,
+    lng: 126.925381,
     cnt: 8245,
     hourly: [200, 80, 40, 28, 40, 120, 490, 780, 920, 740, 640, 680, 660, 700, 690, 770, 1090, 1390, 1650, 1570, 1190, 790, 490, 295],
     wdr: 0.85,
@@ -70,6 +76,8 @@ const STATIONS = [
     tf: true,
     x: 172,
     y: 210,
+    lat: 37.554648,
+    lng: 126.972559,
     cnt: 8100,
     hourly: [100, 50, 30, 20, 80, 400, 1100, 1440, 1520, 980, 620, 555, 475, 515, 575, 655, 1380, 1200, 820, 555, 360, 238, 158, 108],
     wdr: 1.0,
@@ -89,6 +97,8 @@ const STATIONS = [
     tf: true,
     x: 78,
     y: 298,
+    lat: 37.508725,
+    lng: 126.891295,
     cnt: 7600,
     hourly: [60, 30, 18, 14, 58, 375, 1190, 1820, 1690, 945, 555, 475, 415, 455, 515, 635, 1540, 1345, 775, 495, 315, 198, 128, 78],
     wdr: 1.0,
@@ -108,6 +118,8 @@ const STATIONS = [
     tf: true,
     x: 352,
     y: 265,
+    lat: 37.513262,
+    lng: 127.100159,
     cnt: 7452,
     hourly: [78, 38, 19, 14, 28, 148, 595, 975, 1095, 815, 635, 595, 545, 575, 635, 775, 1410, 1275, 1145, 895, 645, 418, 248, 128],
     wdr: 0.9,
@@ -127,6 +139,8 @@ const STATIONS = [
     tf: true,
     x: 186,
     y: 350,
+    lat: 37.47653,
+    lng: 126.981685,
     cnt: 6800,
     hourly: [50, 24, 14, 9, 48, 318, 1045, 1375, 1258, 816, 518, 448, 398, 418, 478, 598, 1178, 1048, 738, 478, 298, 178, 108, 63],
     wdr: 1.0,
@@ -146,6 +160,8 @@ const STATIONS = [
     tf: false,
     x: 148,
     y: 183,
+    lat: 37.555134,
+    lng: 126.936893,
     cnt: 5890,
     hourly: [148, 58, 29, 18, 29, 78, 348, 578, 678, 618, 578, 638, 618, 658, 638, 698, 978, 1088, 1178, 1118, 898, 598, 348, 198],
     wdr: 0.8,
@@ -165,6 +181,8 @@ const STATIONS = [
     tf: false,
     x: 295,
     y: 152,
+    lat: 37.544581,
+    lng: 127.055961,
     cnt: 4786,
     hourly: [39, 19, 9, 7, 19, 79, 278, 696, 754, 618, 478, 448, 418, 438, 478, 558, 840, 778, 678, 518, 358, 228, 138, 68],
     wdr: 1.0,
@@ -184,6 +202,8 @@ const STATIONS = [
     tf: true,
     x: 212,
     y: 158,
+    lat: 37.57042,
+    lng: 126.992144,
     cnt: 4200,
     hourly: [38, 18, 11, 7, 19, 118, 378, 618, 718, 838, 898, 878, 858, 848, 818, 778, 658, 578, 518, 438, 338, 238, 138, 68],
     wdr: 0.95,
@@ -203,6 +223,8 @@ const STATIONS = [
     tf: false,
     x: 196,
     y: 250,
+    lat: 37.534488,
+    lng: 126.994302,
     cnt: 3214,
     hourly: [78, 38, 19, 11, 17, 43, 118, 208, 258, 278, 298, 318, 338, 358, 358, 378, 418, 478, 588, 678, 618, 538, 378, 198],
     wdr: 0.7,
@@ -222,6 +244,8 @@ const STATIONS = [
     tf: true,
     x: 90,
     y: 208,
+    lat: 37.549463,
+    lng: 126.913739,
     cnt: 3100,
     hourly: [58, 23, 11, 7, 13, 48, 178, 338, 418, 378, 348, 378, 358, 378, 378, 418, 588, 638, 678, 618, 478, 318, 178, 88],
     wdr: 0.82,
@@ -241,6 +265,8 @@ const STATIONS = [
     tf: false,
     x: 200,
     y: 305,
+    lat: 37.491897,
+    lng: 127.007917,
     cnt: 2800,
     hourly: [24, 11, 7, 4, 13, 118, 478, 608, 568, 458, 338, 298, 278, 288, 308, 378, 538, 518, 478, 378, 258, 158, 88, 43],
     wdr: 1.0,
@@ -255,35 +281,147 @@ const STATIONS = [
   },
 ]
 
-const DISTRICTS = [
-  '92,28 152,18 210,24 210,62 172,80 130,72 88,60',
-  '210,24 270,18 326,26 332,58 290,74 250,72 210,62',
-  '326,26 384,32 408,60 376,82 336,80 290,74 332,58',
-  '44,58 92,28 88,60 100,100 68,120 38,96',
-  '88,60 130,72 172,80 170,116 138,136 100,128 100,100',
-  '172,80 210,62 250,72 254,110 222,130 186,126 170,116',
-  '250,72 290,74 332,80 338,114 304,132 270,128 254,110',
-  '332,80 376,82 408,60 420,90 408,118 376,130 338,114',
-  '38,96 68,120 60,160 28,180 16,148',
-  '68,120 100,128 138,136 130,176 90,192 58,180 60,160',
-  '100,128 138,136 170,116 186,126 182,168 154,186 118,180 90,192 100,150',
-  '186,126 222,130 254,110 270,128 262,162 232,178 194,172 182,168',
-  '270,128 304,132 338,114 360,132 358,168 330,180 296,176 262,162',
-  '338,114 376,130 408,118 424,146 410,170 376,178 360,168 360,132',
-  '16,240 58,232 90,244 78,286 46,298 16,276',
-  '58,232 130,228 170,238 166,276 128,292 90,288 78,286',
-  '170,238 232,234 264,242 262,280 226,296 188,290 166,276',
-  '264,242 316,238 350,244 352,280 318,296 282,292 262,280',
-  '350,244 410,238 432,250 430,284 400,298 360,296 352,280',
-  '16,276 78,286 70,330 38,348 14,320',
-  '78,286 166,276 188,290 180,338 130,356 70,348 70,330',
-  '188,290 262,280 282,292 276,346 226,362 180,352 180,338',
-  '282,292 352,280 360,296 358,344 316,360 282,358 276,346',
-  '360,296 430,284 434,318 420,360 374,364 358,344',
-  '38,348 130,356 120,400 72,416 28,390',
-  '130,356 226,362 220,408 160,424 120,416 120,400',
-  '226,362 316,360 310,412 256,428 220,424 220,408',
-  '316,360 420,360 416,410 362,430 310,428 310,412',
+const METRO_LINE_PATHS = [
+  {
+    line: '1호선',
+    positions: [
+      [37.503178, 126.882037],
+      [37.508725, 126.891295],
+      [37.515504, 126.907628],
+      [37.517983, 126.917614],
+      [37.529849, 126.964561],
+      [37.554648, 126.972559],
+      [37.565715, 126.977088],
+      [37.570161, 126.982923],
+      [37.57042, 126.992144],
+      [37.57142, 127.009745],
+    ],
+  },
+  {
+    line: '2호선',
+    positions: [
+      [37.549463, 126.913739],
+      [37.557192, 126.925381],
+      [37.555134, 126.936893],
+      [37.556733, 126.946013],
+      [37.563588, 126.975411],
+      [37.566014, 126.982618],
+      [37.566295, 126.99191],
+      [37.566612, 127.009054],
+      [37.561159, 127.036877],
+      [37.544581, 127.055961],
+      [37.540373, 127.069191],
+      [37.513262, 127.100159],
+      [37.511687, 127.086162],
+      [37.504503, 127.049008],
+      [37.497175, 127.027926],
+      [37.497952, 127.027619],
+      [37.491897, 127.007917],
+      [37.47653, 126.981685],
+      [37.484201, 126.929715],
+      [37.508725, 126.891295],
+      [37.549463, 126.913739],
+    ],
+  },
+  {
+    line: '3호선',
+    positions: [
+      [37.576477, 126.985443],
+      [37.57042, 126.992144],
+      [37.55434, 127.010655],
+      [37.548034, 127.015872],
+      [37.504503, 127.049008],
+      [37.493415, 127.01408],
+    ],
+  },
+  {
+    line: '4호선',
+    positions: [
+      [37.656274, 127.063089],
+      [37.570926, 127.009545],
+      [37.558514, 127.005315],
+      [37.554648, 126.972559],
+      [37.47653, 126.981685],
+    ],
+  },
+  {
+    line: '5호선',
+    positions: [
+      [37.57142, 126.97674],
+      [37.566295, 126.99191],
+      [37.57042, 126.992144],
+      [37.557322, 127.029476],
+      [37.540373, 127.069191],
+      [37.517409, 127.112359],
+    ],
+  },
+  {
+    line: '6호선',
+    positions: [
+      [37.549463, 126.913739],
+      [37.539574, 126.961339],
+      [37.534488, 126.994302],
+      [37.55434, 127.010655],
+      [37.548034, 127.015872],
+    ],
+  },
+  {
+    line: '7호선',
+    positions: [
+      [37.49297, 126.895801],
+      [37.484201, 126.929715],
+      [37.486263, 126.982649],
+      [37.504503, 127.049008],
+      [37.540693, 127.07023],
+    ],
+  },
+  {
+    line: '8호선',
+    positions: [
+      [37.517409, 127.112359],
+      [37.513262, 127.100159],
+      [37.505401, 127.106946],
+      [37.478703, 127.126191],
+    ],
+  },
+  {
+    line: '9호선',
+    positions: [
+      [37.533877, 126.902011],
+      [37.516781, 126.917841],
+      [37.51336, 126.928246],
+      [37.505098, 126.961374],
+      [37.504503, 127.049008],
+      [37.511687, 127.086162],
+    ],
+  },
+  {
+    line: '신분당선',
+    positions: [
+      [37.497952, 127.027619],
+      [37.486839, 127.033194],
+      [37.470023, 127.03842],
+      [37.443581, 127.033573],
+    ],
+  },
+  {
+    line: '경의중앙선',
+    positions: [
+      [37.557192, 126.925381],
+      [37.559778, 126.942325],
+      [37.529849, 126.964561],
+      [37.561159, 127.036877],
+    ],
+  },
+  {
+    line: '공항철도',
+    positions: [
+      [37.557192, 126.925381],
+      [37.554648, 126.972559],
+      [37.542955, 126.951869],
+      [37.447464, 126.452508],
+    ],
+  },
 ]
 
 const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선', '9호선']
@@ -314,6 +452,17 @@ function formatPassenger(value) {
   if (value === 0) return '0명'
   if (value >= 10000) return '10,000+'
   return `${value.toLocaleString()}명`
+}
+
+function getDistanceKm(a, b) {
+  const radius = 6371
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const lat1 = (a.lat * Math.PI) / 180
+  const lat2 = (b.lat * Math.PI) / 180
+  const value = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+
+  return radius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value))
 }
 
 function lineTagStyle(line) {
@@ -377,7 +526,7 @@ function App() {
   const [advanced, setAdvanced] = useState(false)
   const [rankPage, setRankPage] = useState(0)
   const [selectedStationId, setSelectedStationId] = useState(null)
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(12)
   const [timeRange, setTimeRange] = useState([0, 24])
   const [passengerRange, setPassengerRange] = useState([0, 10000])
   const [weekday, setWeekday] = useState('전체')
@@ -497,7 +646,7 @@ function App() {
           onTooltipHide={() => setTooltip(null)}
           onTooltipMove={(event) => setTooltip((current) => (current ? { ...current, x: event.clientX, y: event.clientY } : current))}
           onTooltipShow={(event, station, rank) => setTooltip({ station, rank, x: event.clientX, y: event.clientY })}
-          onZoom={(factor) => setZoom((current) => Math.min(2.5, Math.max(0.6, current * factor)))}
+          onZoom={(direction) => setZoom((current) => Math.min(16, Math.max(10, current + direction)))}
           pageCount={pageCount}
           pageStations={pageStations}
           rankPage={rankPage}
@@ -797,7 +946,6 @@ function MapPanel({
 
   return (
     <main className="mapc">
-      <div className="mgrid" />
       <div className="rank-bar">
         <div className="rb-card" title={`기준: ${advanced ? '고급점수' : '이용자수'}`}>
           <span className="rb-label">TOP</span>
@@ -814,86 +962,98 @@ function MapPanel({
       </div>
 
       <div className="zctrl">
-        <button className="zbtn" onClick={() => onZoom(1.2)}>+</button>
-        <button className="zbtn" onClick={() => onZoom(0.83)}>−</button>
+        <button className="zbtn" onClick={() => onZoom(1)}>+</button>
+        <button className="zbtn" onClick={() => onZoom(-1)}>−</button>
       </div>
 
-      <div className="mwrap">
-        <svg className="map-svg" style={{ transform: `scale(${zoom})` }} viewBox="0 0 440 490">
-          {DISTRICTS.slice(0, 14).map((points) => (
-            <polygon fill="white" key={points} points={points} stroke="#DCE2F0" strokeWidth="1.2" />
-          ))}
-          <path d="M 18,202 Q 80,192 140,202 Q 190,210 240,208 Q 300,206 360,212 Q 400,216 432,212" fill="none" stroke="#BFDBFE" strokeLinecap="round" strokeWidth="28" />
-          <path d="M 18,202 Q 80,192 140,202 Q 190,210 240,208 Q 300,206 360,212 Q 400,216 432,212" fill="none" stroke="#93C5FD" strokeLinecap="round" strokeWidth="12" />
-          {DISTRICTS.slice(14).map((points) => (
-            <polygon fill="white" key={points} points={points} stroke="#DCE2F0" strokeWidth="1.2" />
-          ))}
-          <g>
-            {STATIONS.map((station) => {
-              const radius = getRadius(station, scoreMap)
-              const selected = selectedStationId === station.id
-              const inPage = pageIds.includes(station.id)
-              const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
-              const localRank = pageIds.indexOf(station.id) + 1
+      <MapContainer
+        attributionControl={false}
+        center={[37.535, 126.99]}
+        className="realtime-map"
+        maxZoom={16}
+        minZoom={10}
+        scrollWheelZoom
+        zoom={zoom}
+        zoomControl={false}
+      >
+        <LeafletZoomSync zoom={zoom} />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {METRO_LINE_PATHS.map((path) => (
+          <Polyline
+            key={path.line}
+            pathOptions={{
+              color: LINE_COLORS[path.line] || '#64748B',
+              opacity: 0.9,
+              weight: 5,
+            }}
+            positions={path.positions}
+          />
+        ))}
+        {STATIONS.map((station) => {
+          const radius = getRadius(station, scoreMap)
+          const selected = selectedStationId === station.id
+          const inPage = pageIds.includes(station.id)
+          const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
+          const localRank = pageIds.indexOf(station.id) + 1
 
-              return (
-                <g key={station.id}>
-                  {selected && (
-                    <circle cx={station.x} cy={station.y} fill="rgba(255,71,87,0.08)" r={radius + 8}>
-                      <animate attributeName="r" dur="2.2s" repeatCount="indefinite" values={`${radius + 8};${radius + 22};${radius + 8}`} />
-                      <animate attributeName="opacity" dur="2.2s" repeatCount="indefinite" values=".6;0;.6" />
-                    </circle>
-                  )}
-                  <circle
-                    className="station-circle"
-                    cx={station.x}
-                    cy={station.y}
-                    fill={selected ? '#FF4757' : '#3B6DFF'}
-                    opacity={selected ? 1 : inPage ? 0.85 : 0.42}
-                    onClick={() => onStationClick(station.id)}
-                    onMouseEnter={(event) => onTooltipShow(event, station, globalRank)}
-                    onMouseLeave={onTooltipHide}
-                    onMouseMove={onTooltipMove}
-                    r={radius}
-                    stroke={inPage && !selected ? '#3B6DFF' : undefined}
-                    strokeOpacity={inPage && !selected ? '0.5' : undefined}
-                    strokeWidth={inPage && !selected ? '2' : undefined}
-                  />
-                  {inPage && !selected && (
-                    <>
-                      <circle cx={station.x + radius * 0.62} cy={station.y - radius * 0.62} fill={RANK_DOT_COLORS[localRank - 1] || '#9CA3AF'} r="9" />
-                      <text
-                        fill="white"
-                        fontFamily="Noto Sans KR,sans-serif"
-                        fontSize="8"
-                        fontWeight="900"
-                        pointerEvents="none"
-                        textAnchor="middle"
-                        x={station.x + radius * 0.62}
-                        y={station.y - radius * 0.62 + 3.5}
-                      >
-                        {rankPage * 3 + localRank}
-                      </text>
-                    </>
-                  )}
-                  <text
-                    fill={selected ? '#FF4757' : '#8A95AC'}
-                    fontFamily="Noto Sans KR,sans-serif"
-                    fontSize="9"
-                    fontWeight={selected ? '900' : '500'}
-                    pointerEvents="none"
-                    textAnchor="middle"
-                    x={station.x}
-                    y={station.y + radius + 12}
-                  >
-                    {station.name}
-                  </text>
-                </g>
-              )
-            })}
-          </g>
-        </svg>
+          return (
+            <Fragment key={station.id}>
+              <CircleMarker
+                center={[station.lat, station.lng]}
+                eventHandlers={{
+                  click: () => onStationClick(station.id),
+                  mousemove: (event) => onTooltipMove(event.originalEvent),
+                  mouseout: onTooltipHide,
+                  mouseover: (event) => onTooltipShow(event.originalEvent, station, globalRank),
+                }}
+                pathOptions={{
+                  className: selected ? 'station-marker station-marker-selected' : 'station-marker',
+                  color: selected ? '#FF4757' : inPage ? '#3B6DFF' : '#3B6DFF',
+                  fillColor: selected ? '#FF4757' : '#3B6DFF',
+                  fillOpacity: selected ? 0.94 : inPage ? 0.78 : 0.42,
+                  opacity: selected ? 1 : inPage ? 0.85 : 0.42,
+                  weight: inPage || selected ? 2 : 1,
+                }}
+                radius={radius}
+              >
+                <LeafletTooltip direction="bottom" offset={[0, radius + 4]} opacity={1} permanent>
+                  <span className={selected ? 'map-station-label selected' : 'map-station-label'}>{station.name}</span>
+                </LeafletTooltip>
+              </CircleMarker>
+              {inPage && !selected && (
+                <CircleMarker
+                  center={[station.lat + 0.0022, station.lng + 0.0024]}
+                  interactive={false}
+                  pathOptions={{
+                    color: '#fff',
+                    fillColor: RANK_DOT_COLORS[localRank - 1] || '#9CA3AF',
+                    fillOpacity: 1,
+                    opacity: 1,
+                    weight: 2,
+                  }}
+                  radius={9}
+                >
+                  <LeafletTooltip className="rank-badge-tip" direction="center" opacity={1} permanent>
+                    <span className="rank-badge">{rankPage * 3 + localRank}</span>
+                  </LeafletTooltip>
+                </CircleMarker>
+              )}
+            </Fragment>
+          )
+        })}
+      </MapContainer>
+      <div className="metro-legend">
+        {METRO_LINE_PATHS.slice(0, 9).map((path) => (
+          <span className="metro-legend-item" key={path.line}>
+            <span className="metro-legend-dot" style={{ background: LINE_COLORS[path.line] }} />
+            {path.line}
+          </span>
+        ))}
       </div>
+      <div className="map-attribution">Live map tiles by OpenStreetMap · Metro lines are schematic overlays</div>
 
       <div className="rank-nav">
         <button className="rn-arr" disabled={rankPage === 0} onClick={() => onRankNav(-1)}>‹</button>
@@ -907,6 +1067,15 @@ function MapPanel({
       </div>
     </main>
   )
+}
+
+function LeafletZoomSync({ zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    map.setZoom(zoom)
+  }, [map, zoom])
+
+  return null
 }
 
 function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedStation, selectStationByName, simTab }) {
@@ -1072,11 +1241,7 @@ function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, 
     if (simTab === 1) {
       return STATIONS
       .filter((item) => item.id !== station.id)
-      .map((item) => {
-        const dx = item.x - station.x
-        const dy = item.y - station.y
-        return { ...item, km: (Math.sqrt(dx * dx + dy * dy) * 0.084).toFixed(1) }
-      })
+      .map((item) => ({ ...item, km: getDistanceKm(item, station).toFixed(1) }))
       .sort((a, b) => parseFloat(a.km) - parseFloat(b.km))
       .slice(0, 3)
       .map((item, index) => ({ name: item.name, lines: item.lines.join('·'), rank: index + 1, onClick: () => onStationClick(item.id), score: `~${item.km}km` }))
@@ -1120,7 +1285,7 @@ function Tooltip({ advanced, ranked, scoreMap, selectedStation, tooltip }) {
   const firstLine = station.lines[0]
   const distance =
     selectedStation && selectedStation.id !== station.id
-      ? (Math.sqrt((station.x - selectedStation.x) ** 2 + (station.y - selectedStation.y) ** 2) * 0.084).toFixed(1)
+      ? getDistanceKm(station, selectedStation).toFixed(1)
       : null
   const score = advanced && scoreMap ? Math.round((scoreMap[station.id] || 0) * 100) : null
 
