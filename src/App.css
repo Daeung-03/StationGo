@@ -637,37 +637,26 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   overflow: hidden;
 }
 
-.schematic-mapc {
-  background:
-    linear-gradient(rgba(210, 218, 238, .32) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(210, 218, 238, .32) 1px, transparent 1px),
-    #F2F5FC;
-  background-size: 36px 36px;
+.transit-mapc {
+  background: #fffefa;
 }
 
-.schematic-bg {
+.transit-bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
-}
-
-.river-band {
-  position: absolute;
-  left: -3%;
-  right: -3%;
-  top: 44%;
-  height: 56px;
-  transform: rotate(-3deg);
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(191, 219, 254, .5), rgba(147, 197, 253, .5));
+  background:
+    radial-gradient(circle at 36% 18%, rgba(244, 239, 234, .62), transparent 28%),
+    radial-gradient(circle at 62% 34%, rgba(244, 239, 234, .58), transparent 32%),
+    radial-gradient(circle at 44% 72%, rgba(244, 239, 234, .55), transparent 30%);
 }
 
 .schematic-water-label {
   position: absolute;
   left: 50%;
-  top: calc(44% + 18px);
-  transform: translateX(-50%) rotate(-3deg);
-  color: rgba(59, 130, 246, .45);
+  top: 47%;
+  transform: translateX(-50%) rotate(-6deg);
+  color: rgba(96, 165, 250, .36);
   font-size: 11px;
   font-weight: 900;
 }
@@ -688,24 +677,50 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   max-height: 620px;
 }
 
+.city-shapes path {
+  fill: #f3eee9;
+  opacity: .86;
+}
+
+.road-layer path {
+  fill: none;
+  stroke: #e9b9ad;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.15;
+  opacity: .5;
+}
+
 .han-river {
   fill: none;
-  stroke: rgba(147, 197, 253, .65);
   stroke-linecap: round;
-  stroke-width: 18;
+  stroke-linejoin: round;
+}
+
+.han-river.broad {
+  stroke: rgba(210, 232, 248, .9);
+  stroke-width: 30;
+}
+
+.han-river.core {
+  stroke: rgba(174, 216, 245, .72);
+  stroke-width: 14;
 }
 
 .metro-line {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 8;
+  stroke-width: 5.4;
+  paint-order: stroke;
+  stroke-miterlimit: 10;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .18));
   transition: opacity .18s, stroke-width .18s;
 }
 
 .metro-line.muted {
-  opacity: .14;
-  stroke-width: 5;
+  opacity: .12;
+  stroke-width: 3.8;
 }
 
 .schematic-station {
@@ -724,11 +739,11 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
 
 .station-halo {
   filter: url(#stationShadow);
-  opacity: .96;
+  opacity: .82;
 }
 
 .station-node {
-  stroke-width: 3;
+  stroke-width: 2.4;
 }
 
 .transfer-ring {
@@ -748,12 +763,12 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
 .station-label {
   fill: #4A5568;
   font-family: 'Noto Sans KR', sans-serif;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   pointer-events: none;
   text-anchor: middle;
   paint-order: stroke;
-  stroke: rgba(255, 255, 255, .9);
+  stroke: rgba(255, 254, 250, .95);
   stroke-width: 4px;
 }
 
