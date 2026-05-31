@@ -312,10 +312,10 @@ const GEOGRAPHIC_METRO_LINES = [
   {
     line: '1호선',
     positions: [
-      [37.503178, 126.882037],
       [37.508725, 126.891295],
       [37.515504, 126.907628],
       [37.517983, 126.917614],
+      [37.528936, 126.932673],
       [37.529849, 126.964561],
       [37.554648, 126.972559],
       [37.565715, 126.977088],
@@ -338,6 +338,7 @@ const GEOGRAPHIC_METRO_LINES = [
       [37.561159, 127.036877],
       [37.544581, 127.055961],
       [37.540373, 127.069191],
+      [37.537077, 127.085916],
       [37.513262, 127.100159],
       [37.511687, 127.086162],
       [37.504503, 127.049008],
@@ -345,8 +346,12 @@ const GEOGRAPHIC_METRO_LINES = [
       [37.497952, 127.027619],
       [37.491897, 127.007917],
       [37.47653, 126.981685],
+      [37.481426, 126.952281],
       [37.484201, 126.929715],
+      [37.493243, 126.894932],
       [37.508725, 126.891295],
+      [37.517983, 126.917614],
+      [37.533877, 126.902011],
       [37.549463, 126.913739],
     ],
   },
@@ -357,6 +362,7 @@ const GEOGRAPHIC_METRO_LINES = [
       [37.57042, 126.992144],
       [37.55434, 127.010655],
       [37.548034, 127.015872],
+      [37.527381, 127.028513],
       [37.504503, 127.049008],
       [37.493415, 127.01408],
     ],
@@ -365,9 +371,11 @@ const GEOGRAPHIC_METRO_LINES = [
     line: '4호선',
     positions: [
       [37.656274, 127.063089],
+      [37.636352, 127.025735],
       [37.570926, 127.009545],
       [37.558514, 127.005315],
       [37.554648, 126.972559],
+      [37.534488, 126.994302],
       [37.47653, 126.981685],
     ],
   },
@@ -379,6 +387,7 @@ const GEOGRAPHIC_METRO_LINES = [
       [37.57042, 126.992144],
       [37.557322, 127.029476],
       [37.540373, 127.069191],
+      [37.526376, 127.087663],
       [37.517409, 127.112359],
     ],
   },
@@ -1099,16 +1108,26 @@ function MapPanel({
           {GEOGRAPHIC_METRO_LINES.map((path) => {
             const lineVisible = stationMetrics.some((station) => station.visible && station.lines.includes(path.line))
             return (
-              <Polyline
-                key={path.line}
-                pathOptions={{
-                  className: lineVisible ? 'internet-metro-line' : 'internet-metro-line muted',
-                  color: LINE_COLORS[path.line] || '#64748B',
-                  opacity: lineVisible ? 0.86 : 0.13,
-                  weight: lineVisible ? 5 : 3,
-                }}
-                positions={path.positions}
-              />
+              <Fragment key={path.line}>
+                <Polyline
+                  pathOptions={{
+                    className: lineVisible ? 'internet-metro-casing' : 'internet-metro-casing muted',
+                    color: '#ffffff',
+                    opacity: lineVisible ? 0.86 : 0.08,
+                    weight: lineVisible ? 8 : 5,
+                  }}
+                  positions={path.positions}
+                />
+                <Polyline
+                  pathOptions={{
+                    className: lineVisible ? 'internet-metro-line' : 'internet-metro-line muted',
+                    color: LINE_COLORS[path.line] || '#64748B',
+                    opacity: lineVisible ? 0.78 : 0.1,
+                    weight: lineVisible ? 4 : 2.5,
+                  }}
+                  positions={path.positions}
+                />
+              </Fragment>
             )
           })}
           {stationMetrics.map((station) => {

@@ -696,8 +696,20 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   filter: saturate(.88) contrast(.98) brightness(1.04);
 }
 
+.internet-metro-casing {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, .12));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .internet-metro-line {
-  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, .16));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.internet-metro-line.muted,
+.internet-metro-casing.muted {
+  pointer-events: none;
 }
 
 .internet-station-marker {
