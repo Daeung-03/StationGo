@@ -1,0 +1,69 @@
+/* 기본 마진/패딩 제거 및 전체 화면 꽉 채우기 */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* 전체 컨테이너 (Flexbox로 가로 배치) */
+.app-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f3f4f6;
+}
+
+/* 1. 왼쪽 검색 패널 */
+.search-panel {
+  width: 320px;
+  background-color: white;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  padding: 20px;
+  overflow-y: auto;
+  flex-shrink: 0; /* 크기 축소 방지 */
+}
+
+/* 2. 중앙 지도 패널 (flex: 1로 남은 공간 꽉 채움) */
+.map-panel {
+  flex: 1;
+  background-color: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 지도 내 네비게이션 버튼 (절대 위치로 하단 고정) */
+.map-nav-button {
+  position: absolute;
+  bottom: 40px;
+  background-color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 3. 오른쪽 대시보드 패널 */
+.dashboard-panel {
+  width: 384px;
+  background-color: white;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  padding: 20px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* 공통 회색 박스 (차트 들어갈 자리) */
+.chart-placeholder {
+  height: 250px;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
