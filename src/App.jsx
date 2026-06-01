@@ -37,7 +37,7 @@ const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선',
 const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권']
 const AGE_ORDER = ['아동', '일반', '중고생', '청소년', '우대권']
 const RANK_DOT_CLASSES = ['rd1', 'rd2', 'rd3']
-const RANK_DOT_COLORS = ['#F59E0B', '#9CA3AF', '#B45309']
+
 
 
 function formatHour(value) {
@@ -292,15 +292,17 @@ function KakaoMetroMap({
       }
 
       if (inPage && !selected) {
-        const badge = new kakao.maps.CustomOverlay({
+        const rmpDelayClass = localRank >= 2 ? ` rmp-delay-${localRank}` : ''
+        const pin = new kakao.maps.CustomOverlay({
           clickable: false,
-          content: `<span class="kakao-rank-badge">${rankPage * 3 + localRank}</span>`,
+          content: `<div class="rank-map-pin rmp${localRank}${rmpDelayClass}"><svg width="28" height="36" viewBox="0 0 20 26" xmlns="http://www.w3.org/2000/svg"><path d="M10 25 C10 25 1 16 1 10 A9 9 0 0 0 19 10 C19 16 10 25 10 25 Z" fill="currentColor"/></svg><span class="rmp-num">${localRank}</span></div>`,
           map,
-          position: new kakao.maps.LatLng(station.lat + 0.0022, station.lng + 0.0024),
+          position: new kakao.maps.LatLng(station.lat, station.lng),
           xAnchor: 0.5,
-          yAnchor: 0.5,
+          yAnchor: 1.0,
+          zIndex: 15,
         })
-        overlaysRef.current.push(badge)
+        overlaysRef.current.push(pin)
       }
     })
 
