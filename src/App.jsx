@@ -451,7 +451,6 @@ function App() {
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
   const [selectedPreset, setSelectedPreset] = useState(null)
   const [weights, setWeights] = useState(initialWeights)
-  const [simTab, setSimTab] = useState(0)
   const [tooltip, setTooltip] = useState(null)
 
   const filters = useMemo(() => ({
@@ -573,11 +572,6 @@ function App() {
     setRankPage((current) => Math.max(0, Math.min(pageCount - 1, current + direction)))
   }
 
-  const selectStationByName = (name) => {
-    const station = stationMetrics.find((item) => item.name === name && item.visible)
-    if (station) setSelectedStationId(station.id)
-  }
-
   return (
     <div className="stationgo-app">
       <Navigation />
@@ -625,13 +619,10 @@ function App() {
           filters={filters}
           metricMap={metricMap}
           onClose={() => setSelectedStationId(null)}
-          onSimTabChange={setSimTab}
           onStationClick={handleStationClick}
           ranked={ranked}
           selectedStation={selectedStation}
           stationMetrics={stationMetrics}
-          selectStationByName={selectStationByName}
-          simTab={simTab}
         />
       </div>
       <Tooltip advanced={advanced} ranked={ranked} scoreMap={scoreMap} selectedStation={selectedStation} tooltip={tooltip} />
@@ -958,13 +949,10 @@ function MapPanel({
   )
 }
 
-function Dashboard({ filters, onClose, onSimTabChange, onStationClick, ranked, selectedStation, selectStationByName, simTab, stationMetrics }) {
+function Dashboard({ filters, onClose, onStationClick, ranked, selectedStation, stationMetrics }) {
   if (!selectedStation) return <aside className="dash" />
 
   const rank = ranked.findIndex((item) => item.id === selectedStation.id) + 1
-  const visibleMetrics = stationMetrics.filter((station) => station.visible)
-  const average = Math.round(visibleMetrics.reduce((sum, station) => sum + station.count, 0) / (visibleMetrics.length || 1))
-  const diff = average ? ((selectedStation.count - average) / average * 100).toFixed(0) : 0
 
   const hourlyValues = useMemo(() => {
     return getHourlyData(selectedStation, filters)
@@ -999,8 +987,7 @@ function Dashboard({ filters, onClose, onSimTabChange, onStationClick, ranked, s
               <span>명</span>
             </div>
             <div className="mhsub">
-              조건 내 {rank}위 · 평균 대비 {selectedStation.count > average ? '+' : ''}
-              {diff}%
+              조건 내 {rank}위
             </div>
           </div>
         </div>
@@ -1044,32 +1031,10 @@ function Dashboard({ filters, onClose, onSimTabChange, onStationClick, ranked, s
           </div>
         </div>
 
-        <div className="dsec">
-          <div className="dst">역 속성</div>
-          <div className="agrid">
-            {Object.entries(selectedStation.attr).map(([key, value]) => (
-              <div className="aitem" key={key}>
-                <div className="akey">{key}</div>
-                <div className="aval">{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="dsec no-border">
           <div className="dst">유사 역 추천</div>
-          <div className="simtabs">
-            {['패턴 유사', '가까운 역', '규모 유사'].map((tab, index) => (
-              <button className={`simtab ${simTab === index ? 'on' : ''}`} key={tab} onClick={() => onSimTabChange(index)}>
-                {tab}
-              </button>
-            ))}
-          </div>
           <SimilarStations
             onStationClick={onStationClick}
-            ranked={ranked}
-            selectStationByName={selectStationByName}
-            simTab={simTab}
             station={selectedStation}
             stationMetrics={stationMetrics}
           />
@@ -1412,34 +1377,34 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
   )
 }
 
-function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, station, stationMetrics }) {
-  const items = (() => {
-    if (simTab === 0) {
-      return station.simPat.map((item, index) => ({ ...item, rank: index + 1, onClick: () => selectStationByName(item.name), score: `${item.pct}%` }))
+function SimilarStations({ onStationClick, station, stationMetrics }) {
+  const items = useMemo(() => {
+    const allOtherStations = stationMetrics.filter((item) => item.id !== station.id && item.visible)
+    const candidates = allOtherStations.length >= 3 ? allOtherStations : STATIONS.filter((item) => item.id !== station.id)
+
+    const hash = (station.name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    
+    const available = [...candidates]
+    const picked = []
+
+    for (let i = 0; i < 3; i++) {
+      if (available.length === 0) break
+      const index = (hash + i * 7) % available.length
+      picked.push(available[index])
+      if (available.length > 3) {
+        available.splice(index, 1)
+      }
     }
 
-    if (simTab === 1) {
-      return stationMetrics
-      .filter((item) => item.id !== station.id && item.visible)
-      .map((item) => ({ ...item, km: getDistanceKm(item, station).toFixed(1) }))
-      .sort((a, b) => parseFloat(a.km) - parseFloat(b.km))
-      .slice(0, 3)
-      .map((item, index) => ({ name: item.name, lines: item.lines.join('·'), rank: index + 1, onClick: () => onStationClick(item.id), score: `~${item.km}km` }))
-    }
-
-    return stationMetrics
-      .filter((item) => item.id !== station.id && item.visible)
-      .map((item) => ({ ...item, diff: Math.abs(item.count - station.count) }))
-      .sort((a, b) => a.diff - b.diff)
-      .slice(0, 3)
-      .map((item, index) => ({
-        name: item.name,
-        lines: `전체 ${ranked.findIndex((rankedStation) => rankedStation.id === item.id) + 1}위`,
-        rank: index + 1,
-        onClick: () => onStationClick(item.id),
-        score: `${item.count.toLocaleString()}명`,
-      }))
-  })()
+    const dummyPercentages = [98, 95, 91]
+    return picked.map((item, index) => ({
+      name: item.name,
+      lines: item.lines.join('·'),
+      rank: index + 1,
+      onClick: () => onStationClick(item.id),
+      score: `${dummyPercentages[index]}%`,
+    }))
+  }, [station, stationMetrics, onStationClick])
 
   return (
     <div className="simlist">
