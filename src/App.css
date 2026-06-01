@@ -442,6 +442,85 @@ input[type=range].dr::-webkit-slider-thumb {
   flex-shrink: 0;
 }
 
+.preset-arrow {
+  display: inline-block;
+  font-size: 10px;
+  transition: transform 0.2s;
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+  color: #A0AABF;
+}
+
+.preset-arrow.open {
+  transform: rotate(0deg);
+}
+
+.preset-dd {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preset-dd-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 9px;
+  border: 1.5px solid #E4E8F5;
+  background: #fff;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+}
+
+.preset-dd-trigger:hover,
+.preset-dd-trigger.open {
+  border-color: #3B6DFF;
+  background: #F8F9FF;
+}
+
+.preset-dd-name {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1A202C;
+}
+
+.preset-dd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border: 1.5px solid #E4E8F5;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.preset-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 7px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background .15s;
+}
+
+.preset-dd-item:hover {
+  background: #F5F7FD;
+}
+
+.preset-dd-item.on {
+  background: #EEF2FF;
+}
+
 .plist {
   display: flex;
   flex-direction: column;
