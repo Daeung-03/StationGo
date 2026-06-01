@@ -1428,6 +1428,9 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   padding: 13px 15px;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .mhl::after {
@@ -1710,6 +1713,44 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   color: #1A202C;
   font-family: 'Noto Sans KR', sans-serif;
   transform: translateY(8px);
+}
+
+/* ── Station Summary (피크·유형·주말평일) ────────────────────── */
+.mhl-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.stn-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  align-self: stretch;
+  justify-content: center;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.20);
+}
+
+.ssum-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ssum-lbl {
+  font-size: 7.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: .3px;
+  white-space: nowrap;
+}
+
+.ssum-val {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {

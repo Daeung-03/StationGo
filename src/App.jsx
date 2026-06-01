@@ -821,17 +821,20 @@ function MapPanel({
 }
 
 function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedStation, selectStationByName, simTab, stationMetrics }) {
+  const [hoveredHour, setHoveredHour] = useState(null)
+  const [hoveredVal, setHoveredVal] = useState(null)
+
   if (!selectedStation) return <aside className="dash" />
 
   const rank = ranked.findIndex((item) => item.id === selectedStation.id) + 1
   const visibleMetrics = stationMetrics.filter((station) => station.visible)
   const average = Math.round(visibleMetrics.reduce((sum, station) => sum + station.count, 0) / (visibleMetrics.length || 1))
   const diff = average ? ((selectedStation.count - average) / average * 100).toFixed(0) : 0
-  const top3 = selectedStation.hourly
-    .map((value, hour) => ({ hour, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 3)
-  const maxValue = top3[0].value
+
+  const handleHourHover = (hour, val) => {
+    setHoveredHour(hour)
+    setHoveredVal(val)
+  }
 
   return (
     <aside className="dash open">
@@ -853,15 +856,18 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
         <div className="dsec">
           <div className="dst">선택 조건 이용자 수</div>
           <div className="mhl">
-            <div className="mhlabel">조건 반영 합산 방문객</div>
-            <div className="mhval">
-              {selectedStation.count.toLocaleString()}
-              <span>명</span>
+            <div className="mhl-left">
+              <div className="mhlabel">조건 반영 합산 방문객</div>
+              <div className="mhval">
+                {selectedStation.count.toLocaleString()}
+                <span>명</span>
+              </div>
+              <div className="mhsub">
+                조건 내 {rank}위 · 평균 대비 {selectedStation.count > average ? '+' : ''}
+                {diff}%
+              </div>
             </div>
-            <div className="mhsub">
-              조건 내 {rank}위 · 평균 대비 {selectedStation.count > average ? '+' : ''}
-              {diff}%
-            </div>
+            <StationSummary station={selectedStation} />
           </div>
         </div>
 
@@ -887,18 +893,15 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
         </div>
 
         <div className="dsec">
-          <div className="dst">시간대별 이용자 Top 3</div>
-          <div className="barchart">
-            {top3.map((item) => (
-              <div className="brow" key={item.hour}>
-                <span className="blabel">{String(item.hour).padStart(2, '0')}시</span>
-                <div className="btrack">
-                  <div className="bfill" style={{ width: `${Math.round((item.value / maxValue) * 100)}%` }} />
-                </div>
-                <span className="bcount">{item.value.toLocaleString()}명</span>
-              </div>
-            ))}
+          <div className="dst" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>시간대별 이용자</span>
+            {hoveredHour !== null && (
+              <span style={{ fontSize: '11px', color: '#3B6DFF', fontWeight: 600 }}>
+                {String(hoveredHour).padStart(2, '0')}시 · {hoveredVal?.toLocaleString()}명
+              </span>
+            )}
           </div>
+          <HourlyChart hourlyValues={selectedStation.hourly} onHoverChange={handleHourHover} />
         </div>
 
         <div className="dsec">
@@ -933,6 +936,330 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
         </div>
       </div>
     </aside>
+  )
+}
+
+function HourlyChart({ hourlyValues, onHoverChange }) {
+  const [hoveredIdx, setHoveredIdx] = useState(null)
+
+  if (!hourlyValues || hourlyValues.length === 0) return null
+
+  const startIndex = 5
+  const slicedValues = hourlyValues.slice(startIndex)
+  const maxVal = Math.max(...slicedValues, 100)
+
+  const sorted = slicedValues
+    .map((value, idx) => ({ hour: idx + startIndex, value }))
+    .sort((a, b) => b.value - a.value)
+
+  const rankMap = {}
+  sorted.slice(0, 3).forEach((item, index) => {
+    rankMap[item.hour] = index + 1
+  })
+
+  const top3 = sorted.slice(0, 3)
+  const chronoTop3 = [...top3].sort((a, b) => a.hour - b.hour)
+  const badgePositions = {}
+
+  let lastPos = 'BOTTOM'
+  chronoTop3.forEach((item, idx) => {
+    const rank = rankMap[item.hour]
+    let pos = 'TOP'
+    if (idx > 0 && Math.abs(item.hour - chronoTop3[idx - 1].hour) <= 2) {
+      pos = lastPos === 'TOP' ? 'BOTTOM' : 'TOP'
+    } else {
+      pos = rank === 1 ? 'TOP' : 'BOTTOM'
+    }
+    lastPos = pos
+
+    const badgeWidth = 24
+    const badgeHeight = 12
+    const badgeY = pos === 'TOP' ? -badgeHeight - 8 : 8
+
+    badgePositions[item.hour] = {
+      badgeX: -badgeWidth / 2,
+      badgeY: badgeY,
+      textX: 0,
+      textY: badgeY + 8.5,
+    }
+  })
+
+  const width = 276
+  const height = 120
+  const paddingLeft = 28
+  const paddingRight = 12
+  const paddingTop = 22
+  const paddingBottom = 20
+
+  const chartWidth = width - paddingLeft - paddingRight
+  const chartHeight = height - paddingTop - paddingBottom
+
+  const points = slicedValues.map((val, idx) => {
+    const hour = idx + startIndex
+    const x = paddingLeft + (idx / (slicedValues.length - 1)) * chartWidth
+    const y = height - paddingBottom - (val / maxVal) * chartHeight
+    return { hour, val, x, y }
+  })
+
+  const linePath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(height - paddingBottom).toFixed(1)} L ${points[0].x.toFixed(1)} ${(height - paddingBottom).toFixed(1)} Z`
+
+  const rankColors = {
+    1: '#F59E0B',
+    2: '#9CA3AF',
+    3: '#B45309',
+  }
+
+  const handleMouseMove = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const mouseX = event.clientX - rect.left
+
+    let closestIdx = 0
+    let minDiff = Infinity
+    points.forEach((p, idx) => {
+      const diff = Math.abs(p.x - mouseX)
+      if (diff < minDiff) {
+        minDiff = diff
+        closestIdx = idx
+      }
+    })
+
+    if (mouseX >= paddingLeft - 5 && mouseX <= width - paddingRight + 5) {
+      setHoveredIdx(closestIdx)
+      onHoverChange(points[closestIdx].hour, points[closestIdx].val)
+    } else {
+      setHoveredIdx(null)
+      onHoverChange(null, null)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    setHoveredIdx(null)
+    onHoverChange(null, null)
+  }
+
+  const hoveredPoint = hoveredIdx !== null ? points[hoveredIdx] : null
+
+  return (
+    <div
+      className="hourly-chart-container"
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
+      style={{ position: 'relative', marginTop: '6px', userSelect: 'none' }}
+    >
+      <svg height={height} style={{ overflow: 'visible' }} width={width}>
+        <defs>
+          <linearGradient id="hourlyAreaGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#3B6DFF" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#3B6DFF" stopOpacity="0.00" />
+          </linearGradient>
+        </defs>
+
+        {[0.25, 0.6, 1].map((ratio, idx) => {
+          const yVal = height - paddingBottom - ratio * chartHeight
+          const labelVal = Math.round(ratio * maxVal)
+          return (
+            <g key={idx}>
+              <line
+                stroke="#EEF0F9"
+                strokeDasharray="2,2"
+                strokeWidth="1"
+                x1={paddingLeft}
+                x2={width - paddingRight}
+                y1={yVal}
+                y2={yVal}
+              />
+              <text
+                fill="#A0AABF"
+                fontSize="8"
+                fontWeight="600"
+                textAnchor="end"
+                x={paddingLeft - 5}
+                y={yVal + 3}
+              >
+                {labelVal >= 1000 ? `${(labelVal / 1000).toFixed(0)}k` : labelVal}
+              </text>
+            </g>
+          )
+        })}
+
+        <line
+          stroke="#EAECF5"
+          strokeWidth="1"
+          x1={paddingLeft}
+          x2={width - paddingRight}
+          y1={height - paddingBottom}
+          y2={height - paddingBottom}
+        />
+
+        <path d={areaPath} fill="url(#hourlyAreaGrad)" />
+
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#3B6DFF"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+
+        {[5, 10, 15, 20, 23].map((hour) => {
+          const idx = hour - startIndex
+          const x = paddingLeft + (idx / (slicedValues.length - 1)) * chartWidth
+          const labelText = hour === 5 ? '05:30' : `${String(hour).padStart(2, '0')}시`
+          return (
+            <text
+              fill="#A0AABF"
+              fontSize="8"
+              fontWeight="600"
+              key={hour}
+              textAnchor="middle"
+              x={x}
+              y={height - 6}
+            >
+              {labelText}
+            </text>
+          )
+        })}
+
+        {hoveredPoint && (
+          <g>
+            <line
+              stroke="#3B6DFF"
+              strokeDasharray="2,2"
+              strokeOpacity="0.4"
+              strokeWidth="1.5"
+              x1={hoveredPoint.x}
+              x2={hoveredPoint.x}
+              y1={paddingTop}
+              y2={height - paddingBottom}
+            />
+            <circle
+              cx={hoveredPoint.x}
+              cy={hoveredPoint.y}
+              fill="#3B6DFF"
+              r="5"
+              stroke="#fff"
+              strokeWidth="2"
+            />
+          </g>
+        )}
+
+        {points.map((p) => {
+          const rank = rankMap[p.hour]
+          if (!rank) return null
+
+          const color = rankColors[rank]
+          const posInfo = badgePositions[p.hour] || { badgeX: -12, badgeY: -16, textX: 0, textY: -7.5 }
+
+          return (
+            <g key={`badge-${p.hour}`} style={{ filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.15))' }}>
+              <rect
+                fill={color}
+                height={12}
+                rx="3"
+                width={24}
+                x={p.x + posInfo.badgeX}
+                y={p.y + posInfo.badgeY}
+              />
+              <text
+                fill="#ffffff"
+                fontSize="8"
+                fontWeight="900"
+                textAnchor="middle"
+                x={p.x}
+                y={p.y + posInfo.textY}
+              >
+                {rank}위
+              </text>
+            </g>
+          )
+        })}
+
+        {points.map((p) => {
+          const rank = rankMap[p.hour]
+          if (!rank) return null
+
+          const color = rankColors[rank]
+
+          return (
+            <g key={`dot-${p.hour}`}>
+              {rank === 1 && (
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  fill="none"
+                  r="6.5"
+                  stroke={color}
+                  strokeOpacity="0.4"
+                  strokeWidth="1.5"
+                />
+              )}
+              <circle
+                cx={p.x}
+                cy={p.y}
+                fill="#fff"
+                r="3.5"
+                stroke={color}
+                strokeWidth="2"
+              />
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+function StationSummary({ station }) {
+  const topPeakHour = [...station.hourly]
+    .map((val, h) => ({ h, val }))
+    .filter(({ h }) => h >= 5)
+    .sort((a, b) => b.val - a.val)[0]
+
+  const topType = AGE_ORDER
+    .filter((type) => type !== '일반')
+    .map((type) => ({ type, pct: station.age[type] || 0 }))
+    .sort((a, b) => b.pct - a.pct)[0]
+
+  let wdAvg = 0, weAvg = 0
+  if (station.cube) {
+    const { numWeekdays, numWeekends, data } = station.cube
+    let wdSum = 0, weSum = 0
+    for (const dir of ['승차', '하차']) {
+      for (const type of USER_TYPES) {
+        const entry = data[dir]?.[type]
+        if (!entry) continue
+        for (let h = 0; h < 24; h++) {
+          wdSum += entry.weekday[h] ?? 0
+          weSum += entry.weekend[h] ?? 0
+        }
+      }
+    }
+    wdAvg = Math.round(wdSum / (numWeekdays || 1))
+    weAvg = Math.round(weSum / (numWeekends || 1))
+  } else {
+    wdAvg = Math.round(station.cnt * station.wdr)
+    weAvg = Math.round(station.cnt * station.wkr)
+  }
+
+  const higherDay = wdAvg >= weAvg ? '평일' : '주말'
+
+  return (
+    <div className="stn-summary">
+      <div className="ssum-row">
+        <span className="ssum-lbl">피크 시간대</span>
+        <span className="ssum-val">{topPeakHour ? `${String(topPeakHour.h).padStart(2, '0')}:00` : '—'}</span>
+      </div>
+      <div className="ssum-row">
+        <span className="ssum-lbl">최다 유형 (일반 제외)</span>
+        <span className="ssum-val">{topType?.type ?? '—'}</span>
+      </div>
+      <div className="ssum-row">
+        <span className="ssum-lbl">주말 vs 평일</span>
+        <span className="ssum-val">{higherDay} ↑</span>
+      </div>
+    </div>
   )
 }
 
