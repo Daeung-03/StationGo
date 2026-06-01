@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "preprocess": "node scripts/preprocess.mjs",
+    "predev": "node scripts/preprocess.mjs",
+    "prebuild": "node scripts/preprocess.mjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

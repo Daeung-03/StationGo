@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { buildStationsFromInfo } from './data/loaders.js'
 
 const KAKAO_MAP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY
 
@@ -26,260 +27,10 @@ const AGE_COLORS = {
   우대권: '#A78BFA',
 }
 
-const STATIONS = [
-  {
-    id: 'gangnam',
-    name: '강남역',
-    lines: ['2호선', '신분당선'],
-    tf: true,
-    x: 218,
-    y: 315,
-    lat: 37.497952,
-    lng: 127.027619,
-    cnt: 9831,
-    hourly: [80, 40, 25, 18, 35, 220, 950, 1480, 1620, 1100, 680, 580, 490, 510, 590, 720, 1840, 1500, 890, 580, 380, 260, 170, 110],
-    wdr: 1.0,
-    wkr: 0.65,
-    age: { 아동: 15, 청소년: 10, 중고생: 8, 일반: 55, 우대권: 12 },
-    attr: { 구: '강남구', 개통: '1982년', 출구: '13개', 노선: '2개' },
-    simPat: [
-      { name: '역삼역', lines: '2호선', pct: 96 },
-      { name: '선릉역', lines: '2호선', pct: 92 },
-      { name: '교대역', lines: '2·3호선', pct: 88 },
-    ],
-  },
-  {
-    id: 'hongdae',
-    name: '홍대입구역',
-    lines: ['2호선', '경의중앙선', '공항철도'],
-    tf: true,
-    x: 118,
-    y: 175,
-    lat: 37.557192,
-    lng: 126.925381,
-    cnt: 8245,
-    hourly: [200, 80, 40, 28, 40, 120, 490, 780, 920, 740, 640, 680, 660, 700, 690, 770, 1090, 1390, 1650, 1570, 1190, 790, 490, 295],
-    wdr: 0.85,
-    wkr: 1.0,
-    age: { 아동: 10, 청소년: 28, 중고생: 22, 일반: 35, 우대권: 5 },
-    attr: { 구: '마포구', 개통: '2000년', 출구: '8개', 노선: '3개' },
-    simPat: [
-      { name: '합정역', lines: '2·6호선', pct: 93 },
-      { name: '신촌역', lines: '2호선', pct: 89 },
-      { name: '이대역', lines: '2호선', pct: 84 },
-    ],
-  },
-  {
-    id: 'seoul',
-    name: '서울역',
-    lines: ['1호선', '4호선', '공항철도'],
-    tf: true,
-    x: 172,
-    y: 210,
-    lat: 37.554648,
-    lng: 126.972559,
-    cnt: 8100,
-    hourly: [100, 50, 30, 20, 80, 400, 1100, 1440, 1520, 980, 620, 555, 475, 515, 575, 655, 1380, 1200, 820, 555, 360, 238, 158, 108],
-    wdr: 1.0,
-    wkr: 0.58,
-    age: { 아동: 12, 청소년: 8, 중고생: 6, 일반: 52, 우대권: 22 },
-    attr: { 구: '중구', 개통: '1974년', 출구: '14개', 노선: '3개' },
-    simPat: [
-      { name: '시청역', lines: '1·2호선', pct: 91 },
-      { name: '종각역', lines: '1호선', pct: 87 },
-      { name: '동대문역', lines: '1·4호선', pct: 82 },
-    ],
-  },
-  {
-    id: 'sindorim',
-    name: '신도림역',
-    lines: ['1호선', '2호선'],
-    tf: true,
-    x: 78,
-    y: 298,
-    lat: 37.508725,
-    lng: 126.891295,
-    cnt: 7600,
-    hourly: [60, 30, 18, 14, 58, 375, 1190, 1820, 1690, 945, 555, 475, 415, 455, 515, 635, 1540, 1345, 775, 495, 315, 198, 128, 78],
-    wdr: 1.0,
-    wkr: 0.52,
-    age: { 아동: 14, 청소년: 12, 중고생: 10, 일반: 50, 우대권: 14 },
-    attr: { 구: '구로구', 개통: '1974년', 출구: '7개', 노선: '2개' },
-    simPat: [
-      { name: '구로역', lines: '1호선', pct: 90 },
-      { name: '대림역', lines: '2·7호선', pct: 86 },
-      { name: '영등포역', lines: '1호선', pct: 82 },
-    ],
-  },
-  {
-    id: 'jamsil',
-    name: '잠실역',
-    lines: ['2호선', '8호선'],
-    tf: true,
-    x: 352,
-    y: 265,
-    lat: 37.513262,
-    lng: 127.100159,
-    cnt: 7452,
-    hourly: [78, 38, 19, 14, 28, 148, 595, 975, 1095, 815, 635, 595, 545, 575, 635, 775, 1410, 1275, 1145, 895, 645, 418, 248, 128],
-    wdr: 0.9,
-    wkr: 1.0,
-    age: { 아동: 18, 청소년: 15, 중고생: 12, 일반: 44, 우대권: 11 },
-    attr: { 구: '송파구', 개통: '1980년', 출구: '12개', 노선: '2개' },
-    simPat: [
-      { name: '석촌역', lines: '8·9호선', pct: 88 },
-      { name: '종합운동장역', lines: '2호선', pct: 83 },
-      { name: '잠실나루역', lines: '2호선', pct: 79 },
-    ],
-  },
-  {
-    id: 'sadang',
-    name: '사당역',
-    lines: ['2호선', '4호선'],
-    tf: true,
-    x: 186,
-    y: 350,
-    lat: 37.47653,
-    lng: 126.981685,
-    cnt: 6800,
-    hourly: [50, 24, 14, 9, 48, 318, 1045, 1375, 1258, 816, 518, 448, 398, 418, 478, 598, 1178, 1048, 738, 478, 298, 178, 108, 63],
-    wdr: 1.0,
-    wkr: 0.6,
-    age: { 아동: 11, 청소년: 9, 중고생: 8, 일반: 56, 우대권: 16 },
-    attr: { 구: '동작구', 개통: '1984년', 출구: '6개', 노선: '2개' },
-    simPat: [
-      { name: '방배역', lines: '2호선', pct: 87 },
-      { name: '이수역', lines: '4·7호선', pct: 84 },
-      { name: '낙성대역', lines: '2호선', pct: 79 },
-    ],
-  },
-  {
-    id: 'sinchon',
-    name: '신촌역',
-    lines: ['2호선'],
-    tf: false,
-    x: 148,
-    y: 183,
-    lat: 37.555134,
-    lng: 126.936893,
-    cnt: 5890,
-    hourly: [148, 58, 29, 18, 29, 78, 348, 578, 678, 618, 578, 638, 618, 658, 638, 698, 978, 1088, 1178, 1118, 898, 598, 348, 198],
-    wdr: 0.8,
-    wkr: 1.0,
-    age: { 아동: 8, 청소년: 30, 중고생: 24, 일반: 34, 우대권: 4 },
-    attr: { 구: '서대문구', 개통: '1984년', 출구: '6개', 노선: '1개' },
-    simPat: [
-      { name: '이대역', lines: '2호선', pct: 94 },
-      { name: '홍대입구역', lines: '2호선', pct: 89 },
-      { name: '합정역', lines: '2·6호선', pct: 83 },
-    ],
-  },
-  {
-    id: 'seongsu',
-    name: '성수역',
-    lines: ['2호선'],
-    tf: false,
-    x: 295,
-    y: 152,
-    lat: 37.544581,
-    lng: 127.055961,
-    cnt: 4786,
-    hourly: [39, 19, 9, 7, 19, 79, 278, 696, 754, 618, 478, 448, 418, 438, 478, 558, 840, 778, 678, 518, 358, 228, 138, 68],
-    wdr: 1.0,
-    wkr: 0.68,
-    age: { 아동: 35, 청소년: 12, 중고생: 18, 일반: 28, 우대권: 7 },
-    attr: { 구: '성동구', 개통: '1994년', 출구: '4개', 노선: '1개' },
-    simPat: [
-      { name: '뚝섬역', lines: '2호선', pct: 91 },
-      { name: '건대입구역', lines: '2·7호선', pct: 87 },
-      { name: '왕십리역', lines: '2호선', pct: 82 },
-    ],
-  },
-  {
-    id: 'jongno3',
-    name: '종로3가역',
-    lines: ['1호선', '3호선', '5호선'],
-    tf: true,
-    x: 212,
-    y: 158,
-    lat: 37.57042,
-    lng: 126.992144,
-    cnt: 4200,
-    hourly: [38, 18, 11, 7, 19, 118, 378, 618, 718, 838, 898, 878, 858, 848, 818, 778, 658, 578, 518, 438, 338, 238, 138, 68],
-    wdr: 0.95,
-    wkr: 1.0,
-    age: { 아동: 5, 청소년: 4, 중고생: 4, 일반: 48, 우대권: 39 },
-    attr: { 구: '종로구', 개통: '1974년', 출구: '15개', 노선: '3개' },
-    simPat: [
-      { name: '종각역', lines: '1호선', pct: 90 },
-      { name: '안국역', lines: '3호선', pct: 85 },
-      { name: '광화문역', lines: '5호선', pct: 80 },
-    ],
-  },
-  {
-    id: 'itaewon',
-    name: '이태원역',
-    lines: ['6호선'],
-    tf: false,
-    x: 196,
-    y: 250,
-    lat: 37.534488,
-    lng: 126.994302,
-    cnt: 3214,
-    hourly: [78, 38, 19, 11, 17, 43, 118, 208, 258, 278, 298, 318, 338, 358, 358, 378, 418, 478, 588, 678, 618, 538, 378, 198],
-    wdr: 0.7,
-    wkr: 1.0,
-    age: { 아동: 8, 청소년: 20, 중고생: 18, 일반: 48, 우대권: 6 },
-    attr: { 구: '용산구', 개통: '2000년', 출구: '4개', 노선: '1개' },
-    simPat: [
-      { name: '녹사평역', lines: '6호선', pct: 92 },
-      { name: '한강진역', lines: '6호선', pct: 88 },
-      { name: '약수역', lines: '3·6호선', pct: 81 },
-    ],
-  },
-  {
-    id: 'hapjeong',
-    name: '합정역',
-    lines: ['2호선', '6호선'],
-    tf: true,
-    x: 90,
-    y: 208,
-    lat: 37.549463,
-    lng: 126.913739,
-    cnt: 3100,
-    hourly: [58, 23, 11, 7, 13, 48, 178, 338, 418, 378, 348, 378, 358, 378, 378, 418, 588, 638, 678, 618, 478, 318, 178, 88],
-    wdr: 0.82,
-    wkr: 1.0,
-    age: { 아동: 12, 청소년: 24, 중고생: 20, 일반: 38, 우대권: 6 },
-    attr: { 구: '마포구', 개통: '1994년', 출구: '8개', 노선: '2개' },
-    simPat: [
-      { name: '홍대입구역', lines: '2호선', pct: 93 },
-      { name: '망원역', lines: '6호선', pct: 89 },
-      { name: '성산역', lines: '6호선', pct: 84 },
-    ],
-  },
-  {
-    id: 'seocho',
-    name: '서초역',
-    lines: ['2호선'],
-    tf: false,
-    x: 200,
-    y: 305,
-    lat: 37.491897,
-    lng: 127.007917,
-    cnt: 2800,
-    hourly: [24, 11, 7, 4, 13, 118, 478, 608, 568, 458, 338, 298, 278, 288, 308, 378, 538, 518, 478, 378, 258, 158, 88, 43],
-    wdr: 1.0,
-    wkr: 0.55,
-    age: { 아동: 10, 청소년: 6, 중고생: 5, 일반: 63, 우대권: 16 },
-    attr: { 구: '서초구', 개통: '1984년', 출구: '7개', 노선: '1개' },
-    simPat: [
-      { name: '교대역', lines: '2·3호선', pct: 91 },
-      { name: '방배역', lines: '2호선', pct: 87 },
-      { name: '강남역', lines: '2호선', pct: 82 },
-    ],
-  },
-]
+// station_info.csv + passenger_summary.json 기반 역 목록
+const STATIONS = buildStationsFromInfo()
+// 승객 수 필터 슬라이더 상한: 실제 최대 cnt를 10,000 단위로 올림
+const PASSENGER_RANGE_MAX = Math.ceil(Math.max(...STATIONS.map(s => s.cnt), 10000) / 10000) * 10000
 
 
 const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선', '9호선']
@@ -308,7 +59,8 @@ function formatHour(value) {
 
 function formatPassenger(value) {
   if (value === 0) return '0명'
-  if (value >= 10000) return '10,000+'
+  if (value >= 100000) return `${(value / 10000).toFixed(0)}만명`
+  if (value >= 10000) return `${(value / 10000).toFixed(1)}만명`
   return `${value.toLocaleString()}명`
 }
 
@@ -329,6 +81,36 @@ function lineTagStyle(line) {
 }
 
 function getFilteredCount(station, filters) {
+  const { cube } = station
+
+  // ── 큐브 기반 정확 계산 (passenger_summary.json 수록 역) ──────────────
+  if (cube) {
+    const { timeRange: [start, end], weekday, activeTypes, boarding } = filters
+    const { numWeekdays, numWeekends, data } = cube
+    const directions = boarding === '전체' ? ['승차', '하차'] : [boarding]
+
+    let wdSum = 0, weSum = 0
+    for (const dir of directions) {
+      for (const type of USER_TYPES) {
+        if (!activeTypes.has(type)) continue
+        const entry = data[dir]?.[type]
+        if (!entry) continue
+        for (let h = start; h < end; h++) {
+          wdSum += entry.weekday[h] ?? 0
+          weSum += entry.weekend[h] ?? 0
+        }
+      }
+    }
+
+    if (weekday === '평일') return Math.round(wdSum / (numWeekdays || 1))
+    if (weekday === '주말') return Math.round(weSum / (numWeekends || 1))
+    // '전체': 날짜 수 가중 평균 → 실제 일평균
+    const totalDays = (numWeekdays + numWeekends) || 1
+    return Math.round((wdSum + weSum) / totalDays)
+  }
+
+  // ── fallback: cube 없는 역은 기존 근사 계산 ───────────────────────────
+  // TODO: dummy_data.csv에 해당 역 데이터 추가 후 fallback 제거
   const [start, end] = filters.timeRange
   const hourlyTotal = station.hourly.reduce((sum, value) => sum + value, 0) || 1
   const timeTotal = station.hourly.slice(start, end).reduce((sum, value) => sum + value, 0)
@@ -336,7 +118,6 @@ function getFilteredCount(station, filters) {
   const dayFactor = filters.weekday === '평일' ? station.wdr : filters.weekday === '주말' ? station.wkr : (station.wdr + station.wkr) / 2
   const ageFactor = USER_TYPES.reduce((sum, type) => sum + (filters.activeTypes.has(type) ? station.age[type] || 0 : 0), 0) / 100
   const directionFactor = filters.boarding === '승차' ? 0.52 : filters.boarding === '하차' ? 0.48 : 1
-
   return Math.round(station.cnt * timeFactor * dayFactor * ageFactor * directionFactor)
 }
 
@@ -623,7 +404,7 @@ function App() {
   const [rankPage, setRankPage] = useState(0)
   const [selectedStationId, setSelectedStationId] = useState(null)
   const [timeRange, setTimeRange] = useState([0, 24])
-  const [passengerRange, setPassengerRange] = useState([0, 10000])
+  const [passengerRange, setPassengerRange] = useState([0, PASSENGER_RANGE_MAX])
   const [weekday, setWeekday] = useState('전체')
   const [boarding, setBoarding] = useState('전체')
   const [transfer, setTransfer] = useState('전체')
@@ -663,12 +444,13 @@ function App() {
   }
 
   const updatePassengerRange = (index, value) => {
+    const step = Math.round(PASSENGER_RANGE_MAX / 100)
     setPassengerRange(([start, end]) => {
       const next = [...[start, end]]
       next[index] = Number(value)
       if (next[0] >= next[1]) {
-        if (index === 0) next[0] = next[1] - 100
-        else next[1] = next[0] + 100
+        if (index === 0) next[0] = next[1] - step
+        else next[1] = next[0] + step
       }
       return next
     })
@@ -776,6 +558,7 @@ function App() {
           onTypeToggle={toggleUserType}
           onWeekdayChange={updateChoice(setWeekday)}
           onWeightChange={updateWeight}
+          maxPassenger={PASSENGER_RANGE_MAX}
           passengerRange={passengerRange}
           selectedPreset={selectedPreset}
           selectedStation={selectedStation}
@@ -839,6 +622,7 @@ function Sidebar({
   activeLines,
   activeTypes,
   boarding,
+  maxPassenger,
   onAdvancedToggle,
   onBoardingChange,
   onLineToggle,
@@ -942,11 +726,11 @@ function Sidebar({
             <span className="tsep">~</span>
             <div className="tchip">{formatPassenger(passengerRange[1])}</div>
           </div>
-          <DualRange max={10000} min={0} onChange={onPassengerRangeChange} step={100} values={passengerRange} />
+          <DualRange max={maxPassenger} min={0} onChange={onPassengerRangeChange} step={Math.round(maxPassenger / 100)} values={passengerRange} />
           <div className="rlabels">
             <span className="rlabel">0</span>
-            <span className="rlabel">5,000</span>
-            <span className="rlabel">10,000+</span>
+            <span className="rlabel">{formatPassenger(Math.round(maxPassenger / 2))}</span>
+            <span className="rlabel">{formatPassenger(maxPassenger)}</span>
           </div>
         </div>
 

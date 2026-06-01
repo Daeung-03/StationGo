@@ -1,0 +1,87 @@
+import stationInfoRaw from './station_info.csv?raw'
+import passengerSummary from './passenger_summary.json'
+
+// passenger_summary.json은 scripts/preprocess.mjs로 생성됩니다.
+// 원본 CSV가 갱신되면 `node scripts/preprocess.mjs` 재실행 후 커밋하세요.
+//
+// 큐브 구조: data[direction][type]['weekday'|'weekend'][hour 0-23] = 합산값
+//   역 수가 늘어도 JSON 크기는 "역 수 × 480 숫자"로 고정됩니다.
+
+const FALLBACK_HOURLY = [
+  20, 10, 5, 5, 10, 50,
+  200, 500, 600, 400, 300, 280,
+  300, 280, 260, 300, 400, 600,
+  500, 300, 200, 150, 100, 50,
+]
+
+function parseCSV(text) {
+  const [headerLine, ...dataLines] = text.trim().split('\n')
+  const headers = headerLine.split(',').map(h => h.trim())
+  return dataLines
+    .filter(line => line.trim())
+    .map(line => {
+      const values = line.split(',')
+      return Object.fromEntries(headers.map((h, i) => [h, (values[i] ?? '').trim()]))
+    })
+}
+
+/**
+ * station_info.csv로 역 목록을 구성하고 passenger_summary.json의 집계값을 병합한다.
+ *
+ * 각 역에 추가되는 필드:
+ *   cube   - 필터 정확 계산에 사용. summary 없는 역은 null (fallback 모드)
+ *   cnt    - 필터 없는 기본 일평균 (passengerRange 슬라이더 상한 계산용)
+ *   hourly - 전체 시간대 일평균 (PeakCard·차트 표시용)
+ *   wdr/wkr - 평일·주말 상대 비율 (PeakCard 요일 레이블용)
+ *   age    - 유형별 비중 % (파이차트용)
+ *
+ * TODO: dummy_data.csv가 모든 역을 포함하면 fallback 분기 제거 가능
+ */
+export function buildStationsFromInfo() {
+  const rows = parseCSV(stationInfoRaw)
+  const stationMap = new Map()
+
+  for (const row of rows) {
+    const name = row['역명']
+    if (!stationMap.has(name)) {
+      stationMap.set(name, {
+        id: name,
+        name,
+        lines: [],
+        lng: parseFloat(row['x']),
+        lat: parseFloat(row['y']),
+      })
+    }
+    stationMap.get(name).lines.push(row['호선'])
+  }
+
+  return Array.from(stationMap.values()).map(station => {
+    const s = passengerSummary[station.name]
+
+    return {
+      ...station,
+      tf: station.lines.length > 1,
+
+      // cube: getFilteredCount 에서 정확한 집계에 사용
+      // null이면 loaders의 근사값(cnt·hourly·wdr·wkr)으로 fallback
+      cube: s
+        ? { numWeekdays: s.numWeekdays, numWeekends: s.numWeekends, data: s.data }
+        : null,
+
+      cnt:    s?.cnt    ?? 5000,
+      hourly: s?.hourly ?? FALLBACK_HOURLY,
+      wdr:    s?.wdr    ?? 1.0,
+      wkr:    s?.wkr    ?? 0.8,
+      age:    s?.age    ?? { 아동: 10, 청소년: 15, 중고생: 10, 일반: 50, 우대권: 15 },
+
+      attr: {
+        구: '미정',     // TODO: 행정구역 데이터 필요
+        개통: '미정',   // TODO: 개통 연도 데이터 필요
+        출구: '미정',   // TODO: 출구 수 데이터 필요
+        노선: `${station.lines.length}개`,
+      },
+
+      simPat: [],  // TODO: 패턴 유사도 계산 후 채울 것
+    }
+  })
+}
