@@ -39,19 +39,6 @@ const AGE_ORDER = ['아동', '일반', '중고생', '청소년', '우대권']
 const RANK_DOT_CLASSES = ['rd1', 'rd2', 'rd3']
 const RANK_DOT_COLORS = ['#F59E0B', '#9CA3AF', '#B45309']
 
-const initialWeights = [
-  { group: '이용량', name: '이용자수', value: 80, active: true },
-  { group: '시간 분포', name: '피크 집중도', value: 70, active: true },
-  { group: '시간 분포', name: '오전 비중', value: 40, active: false },
-  { group: '시간 분포', name: '오후 비중', value: 60, active: false },
-  { group: '시간 분포', name: '야간 비중', value: 30, active: false },
-  { group: '이용자층 편향', name: '어린이 편향', value: 50, active: false },
-  { group: '이용자층 편향', name: '청소년 편향', value: 50, active: false },
-  { group: '이용자층 편향', name: '일반인 편향', value: 50, active: false },
-  { group: '이용자층 편향', name: '노인 편향', value: 50, active: false },
-  { group: '이동 방향', name: '승차 비중', value: 50, active: false },
-  { group: '이동 방향', name: '하차 비중', value: 50, active: false },
-]
 
 function formatHour(value) {
   return `${String(Math.round(value)).padStart(2, '0')}:00`
@@ -133,61 +120,18 @@ function getStationMetrics(filters) {
   })
 }
 
-function computeScores(weights, stationMetrics) {
-  const activeDims = weights.filter((weight) => weight.active && weight.value > 0)
-  if (!activeDims.length) return null
-
-  const totalWeight = activeDims.reduce((sum, dim) => sum + dim.value, 0) || 1
-  const visibleMetrics = stationMetrics.filter((station) => station.visible)
-  const raw = visibleMetrics.map((station) => {
-    const total = station.hourly.reduce((sum, value) => sum + value, 0) || 1
-    const morning = station.hourly.slice(6, 12).reduce((sum, value) => sum + value, 0) / total
-    const afternoon = station.hourly.slice(12, 18).reduce((sum, value) => sum + value, 0) / total
-    const night = station.hourly.slice(18, 24).reduce((sum, value) => sum + value, 0) / total
-    const peak = Math.max(...station.hourly) / total
-    let score = 0
-
-    activeDims.forEach((dim) => {
-      let value = 0
-      if (dim.name === '이용자수') value = station.count / 10000
-      else if (dim.name === '피크 집중도') value = peak * 3
-      else if (dim.name === '오전 비중') value = morning
-      else if (dim.name === '오후 비중') value = afternoon
-      else if (dim.name === '야간 비중') value = night
-      else if (dim.name === '어린이 편향') value = (station.age.아동 || 0) / 100
-      else if (dim.name === '청소년 편향') value = (station.age.청소년 || 0) / 100
-      else if (dim.name === '일반인 편향') value = (station.age.일반 || 0) / 100
-      else if (dim.name === '노인 편향') value = (station.age.우대권 || 0) / 100
-      else if (dim.name === '승차 비중') value = 0.5
-      else if (dim.name === '하차 비중') value = 0.5
-
-      score += (dim.value / totalWeight) * Math.min(1, value)
-    })
-
-    return { id: station.id, score }
-  })
-
-  const maxScore = Math.max(...raw.map((item) => item.score)) || 1
-  return raw.reduce((scoreMap, item) => ({ ...scoreMap, [item.id]: item.score / maxScore }), {})
-}
-
-function getRankedStations(advanced, weights, filters) {
+function getRankedStations(filters) {
   const stationMetrics = getStationMetrics(filters)
-  const scoreMap = advanced ? computeScores(weights, stationMetrics) : null
-  const ranked = stationMetrics.filter((station) => station.visible).sort((a, b) => {
-    if (scoreMap) return (scoreMap[b.id] || 0) - (scoreMap[a.id] || 0)
-    return b.count - a.count
-  })
+  const ranked = stationMetrics.filter((station) => station.visible).sort((a, b) => b.count - a.count)
   const metricMap = stationMetrics.reduce((map, station) => ({ ...map, [station.id]: station }), {})
 
-  return { metricMap, ranked, scoreMap, stationMetrics }
+  return { metricMap, ranked, stationMetrics }
 }
 
-function getRadius(station, stationMetrics, scoreMap) {
+function getRadius(station, stationMetrics) {
   const visibleMetrics = stationMetrics.filter((item) => item.visible)
-  const getValue = (item) => (scoreMap ? scoreMap[item.id] || 0 : item.count)
-  const maxValue = Math.max(...visibleMetrics.map((item) => getValue(item)), 1)
-  const value = station.visible ? getValue(station) : 0
+  const maxValue = Math.max(...visibleMetrics.map((item) => item.count), 1)
+  const value = station.visible ? station.count : 0
 
   return 7 + (27 - 7) * Math.sqrt(value / maxValue)
 }
@@ -225,7 +169,6 @@ function KakaoMetroMap({
   pageIds,
   rankPage,
   ranked,
-  scoreMap,
   selectedStationId,
   stationMetrics,
 }) {
@@ -293,7 +236,7 @@ function KakaoMetroMap({
 
     stationMetrics.forEach((station) => {
       const position = new kakao.maps.LatLng(station.lat, station.lng)
-      const radius = getRadius(station, stationMetrics, scoreMap)
+      const radius = getRadius(station, stationMetrics)
       const selected = selectedStationId === station.id
       const inPage = pageIds.includes(station.id)
       const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
@@ -376,7 +319,6 @@ function KakaoMetroMap({
     pageIds,
     rankPage,
     ranked,
-    scoreMap,
     selectedStationId,
     stationMetrics,
   ])
@@ -400,7 +342,6 @@ function KakaoMetroMap({
 }
 
 function App() {
-  const [advanced, setAdvanced] = useState(false)
   const [rankPage, setRankPage] = useState(0)
   const [selectedStationId, setSelectedStationId] = useState(null)
   const [timeRange, setTimeRange] = useState([0, 24])
@@ -410,8 +351,7 @@ function App() {
   const [transfer, setTransfer] = useState('전체')
   const [activeTypes, setActiveTypes] = useState(() => new Set(USER_TYPES))
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
-  const [selectedPreset, setSelectedPreset] = useState(null)
-  const [weights, setWeights] = useState(initialWeights)
+  const [selectedPreset, setSelectedPreset] = useState('사용자 정의')
   const [simTab, setSimTab] = useState(0)
   const [tooltip, setTooltip] = useState(null)
 
@@ -424,13 +364,14 @@ function App() {
     transfer,
     weekday,
   }), [activeLines, activeTypes, boarding, passengerRange, timeRange, transfer, weekday])
-  const { metricMap, ranked, scoreMap, stationMetrics } = useMemo(() => getRankedStations(advanced, weights, filters), [advanced, filters, weights])
+  const { metricMap, ranked, stationMetrics } = useMemo(() => getRankedStations(filters), [filters])
   const pageCount = Math.max(1, Math.ceil(ranked.length / 3))
   const safeRankPage = Math.min(rankPage, pageCount - 1)
   const pageStations = useMemo(() => ranked.slice(safeRankPage * 3, safeRankPage * 3 + 3), [ranked, safeRankPage])
   const selectedStation = metricMap[selectedStationId]?.visible ? metricMap[selectedStationId] : null
 
   const updateTimeRange = (index, value) => {
+    setSelectedPreset('사용자 정의')
     setTimeRange(([start, end]) => {
       const next = [...[start, end]]
       next[index] = Number(value)
@@ -444,6 +385,7 @@ function App() {
   }
 
   const updatePassengerRange = (index, value) => {
+    setSelectedPreset('사용자 정의')
     const step = Math.round(PASSENGER_RANGE_MAX / 100)
     setPassengerRange(([start, end]) => {
       const next = [...[start, end]]
@@ -458,6 +400,7 @@ function App() {
   }
 
   const updateChoice = (setter) => (value) => {
+    setSelectedPreset('사용자 정의')
     setter(value)
     setRankPage(0)
   }
@@ -479,14 +422,11 @@ function App() {
       setTimeRange([0, 24])
       setActiveTypes(new Set(['아동', '우대권']))
     }
-  }
-
-  const toggleAdvanced = () => {
-    setAdvanced((value) => !value)
-    setRankPage(0)
+    // '사용자 정의': no filter changes, just updates the dropdown label
   }
 
   const toggleUserType = (type) => {
+    setSelectedPreset('사용자 정의')
     setActiveTypes((current) => {
       const next = new Set(current)
       if (next.has(type)) next.delete(type)
@@ -497,6 +437,7 @@ function App() {
   }
 
   const toggleLine = (line) => {
+    setSelectedPreset('사용자 정의')
     setActiveLines((current) => {
       const next = new Set(current)
       if (next.has(line)) next.delete(line)
@@ -504,13 +445,6 @@ function App() {
       return next
     })
     setRankPage(0)
-  }
-
-  const updateWeight = (name, key, value) => {
-    setWeights((current) =>
-      current.map((weight) => (weight.name === name ? { ...weight, [key]: value } : weight)),
-    )
-    if (advanced) setRankPage(0)
   }
 
   const handleStationClick = useCallback((stationId) => {
@@ -544,11 +478,9 @@ function App() {
       <Navigation />
       <div className="main">
         <Sidebar
-          advanced={advanced}
           activeLines={activeLines}
           activeTypes={activeTypes}
           boarding={boarding}
-          onAdvancedToggle={toggleAdvanced}
           onBoardingChange={updateChoice(setBoarding)}
           onLineToggle={toggleLine}
           onPassengerRangeChange={updatePassengerRange}
@@ -557,18 +489,14 @@ function App() {
           onTransferChange={updateChoice(setTransfer)}
           onTypeToggle={toggleUserType}
           onWeekdayChange={updateChoice(setWeekday)}
-          onWeightChange={updateWeight}
           maxPassenger={PASSENGER_RANGE_MAX}
           passengerRange={passengerRange}
           selectedPreset={selectedPreset}
-          selectedStation={selectedStation}
           timeRange={timeRange}
           transfer={transfer}
           weekday={weekday}
-          weights={weights}
         />
         <MapPanel
-          advanced={advanced}
           onRankNav={handleRankNav}
           onStationClick={handleStationClick}
           onTooltipHide={handleTooltipHide}
@@ -578,7 +506,6 @@ function App() {
           pageStations={pageStations}
           rankPage={safeRankPage}
           ranked={ranked}
-          scoreMap={scoreMap}
           selectedStationId={selectedStationId}
           stationMetrics={stationMetrics}
         />
@@ -594,7 +521,7 @@ function App() {
           simTab={simTab}
         />
       </div>
-      <Tooltip advanced={advanced} ranked={ranked} scoreMap={scoreMap} selectedStation={selectedStation} tooltip={tooltip} />
+      <Tooltip ranked={ranked} selectedStation={selectedStation} tooltip={tooltip} />
     </div>
   )
 }
@@ -618,12 +545,10 @@ function Navigation() {
 }
 
 function Sidebar({
-  advanced,
   activeLines,
   activeTypes,
   boarding,
   maxPassenger,
-  onAdvancedToggle,
   onBoardingChange,
   onLineToggle,
   onPassengerRangeChange,
@@ -632,36 +557,66 @@ function Sidebar({
   onTransferChange,
   onTypeToggle,
   onWeekdayChange,
-  onWeightChange,
   passengerRange,
   selectedPreset,
-  selectedStation,
   timeRange,
   transfer,
   weekday,
-  weights,
 }) {
+  const [ddOpen, setDdOpen] = useState(false)
+  const ddRef = useRef(null)
   const timeLabel = timeRange[0] === 0 && timeRange[1] === 24 ? '전일' : `${formatHour(timeRange[0])}~${formatHour(timeRange[1])}`
-  const presets = [
+  const allPresets = [
+    { icon: '🎛️', name: '사용자 정의', desc: '직접 필터 조건 설정', bg: '#F5F7FD' },
     { icon: '🚶', name: '출퇴근 패턴', desc: '평일 07–09·18–20시, 일반', bg: '#EEF2FF' },
     { icon: '🎉', name: '주말 여가', desc: '주말 10–22시, 전연령', bg: '#FDF4EC' },
     { icon: '📚', name: '청년·학생층', desc: '청소년·중고생·일반', bg: '#EDFDF4' },
     { icon: '🏥', name: '교통약자', desc: '아동·우대권, 전시간대', bg: '#F5F0FA' },
   ]
+  const currentPreset = allPresets.find((p) => p.name === selectedPreset) || allPresets[0]
+
+  useEffect(() => {
+    if (!ddOpen) return
+    const handleClickOutside = (e) => {
+      if (ddRef.current && !ddRef.current.contains(e.target)) setDdOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [ddOpen])
 
   return (
     <aside className="sidebar">
       <div className="sb-head">
         <span className="sb-title">검색 컬럼</span>
-        <div className="adv-wrap">
-          <span className={`adv-lbl ${advanced ? 'on' : ''}`}>고급</span>
-          <button aria-label="고급 분석 모드" className={`sw ${advanced ? 'on' : ''}`} onClick={onAdvancedToggle} />
-        </div>
       </div>
 
       <div className="sb-scroll">
         <div className="fsec">
-          <PeakCard station={selectedStation} />
+          <div className="flabel">컬럼 선택 세트</div>
+          <div className="preset-dd" ref={ddRef}>
+            <button className={`preset-dd-trigger ${ddOpen ? 'open' : ''}`} onClick={() => setDdOpen((v) => !v)}>
+              <span className="picon" style={{ background: currentPreset.bg }}>{currentPreset.icon}</span>
+              <span className="preset-dd-name">{currentPreset.name}</span>
+              <span className={`preset-arrow ${ddOpen ? 'open' : ''}`}>▾</span>
+            </button>
+            {ddOpen && (
+              <div className="preset-dd-list">
+                {allPresets.map((preset) => (
+                  <button
+                    className={`preset-dd-item ${selectedPreset === preset.name ? 'on' : ''}`}
+                    key={preset.name}
+                    onClick={() => { onPresetChange(preset.name); setDdOpen(false) }}
+                  >
+                    <span className="picon" style={{ background: preset.bg }}>{preset.icon}</span>
+                    <span>
+                      <span className="pname">{preset.name}</span>
+                      <span className="pdesc">{preset.desc}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="fsec">
@@ -733,53 +688,11 @@ function Sidebar({
             <span className="rlabel">{formatPassenger(maxPassenger)}</span>
           </div>
         </div>
-
-        <div className="fsec">
-          <div className="flabel">컬럼 선택 세트</div>
-          <div className="plist">
-            {presets.map((preset) => (
-              <button
-                className={`pitem ${selectedPreset === preset.name ? 'on' : ''}`}
-                key={preset.name}
-                onClick={() => onPresetChange(preset.name)}
-              >
-                <span className="picon" style={{ background: preset.bg }}>
-                  {preset.icon}
-                </span>
-                <span>
-                  <span className="pname">{preset.name}</span>
-                  <span className="pdesc">{preset.desc}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
-
-      <AdvancedOverlay advanced={advanced} onWeightChange={onWeightChange} weights={weights} />
     </aside>
   )
 }
 
-function PeakCard({ station }) {
-  if (!station) return <div className="peak-card" />
-  const maxHourCount = Math.max(...station.hourly)
-  const peakHour = station.hourly.indexOf(maxHourCount)
-  const day = station.wdr >= station.wkr ? '평일' : '주말'
-
-  return (
-    <div className="peak-card show">
-      <div className="pk-head">⚡ 선택역 피크 조건</div>
-      <div className="pk-row">
-        <span className="pk-tag">
-          {formatHour(peakHour)}~{formatHour(peakHour + 1)}
-        </span>
-        <span className="pk-tag">{day} 최다</span>
-        <span className="pk-count">{maxHourCount.toLocaleString()}명</span>
-      </div>
-    </div>
-  )
-}
 
 function DualRange({ max, min, onChange, step, values }) {
   const [start, end] = values
@@ -811,52 +724,8 @@ function ChoiceSection({ label, onChange, options, value }) {
   )
 }
 
-function AdvancedOverlay({ advanced, onWeightChange, weights }) {
-  const groups = [...new Set(weights.map((weight) => weight.group))]
-
-  return (
-    <div className={`adv-overlay ${advanced ? 'show' : ''}`}>
-      <div className="adv-top">
-        <div className="adv-title">⚙ 고급 분석 모드</div>
-        <div className="adv-desc">각 속성의 가중치를 설정하면 종합 점수 기준으로 역이 시각화됩니다.</div>
-      </div>
-      <div className="adv-body">
-        {groups.map((group) => (
-          <div className="eq-group" key={group}>
-            <div className="eq-glabel">{group}</div>
-            {weights
-              .filter((weight) => weight.group === group)
-              .map((weight) => (
-                <div className="eq-row" key={weight.name}>
-                  <button
-                    aria-label={`${weight.name} 사용`}
-                    className={`eq-check ${weight.active ? 'on' : ''}`}
-                    onClick={() => onWeightChange(weight.name, 'active', !weight.active)}
-                  />
-                  <span className={`eq-name ${weight.active ? '' : 'off'}`}>{weight.name}</span>
-                  <input
-                    className="eq-sl"
-                    disabled={!weight.active}
-                    max="100"
-                    min="0"
-                    onChange={(event) => onWeightChange(weight.name, 'value', Number(event.target.value))}
-                    step="10"
-                    type="range"
-                    value={weight.value}
-                  />
-                  <span className={`eq-val ${weight.active ? '' : 'off'}`}>{weight.value}</span>
-                </div>
-              ))}
-          </div>
-        ))}
-        <div className="adv-note">활성 속성의 가중치 합산으로 종합 점수를 계산합니다. 점수가 높을수록 지도에서 원이 크게 표시됩니다.</div>
-      </div>
-    </div>
-  )
-}
 
 function MapPanel({
-  advanced,
   onRankNav,
   onStationClick,
   onTooltipHide,
@@ -866,7 +735,6 @@ function MapPanel({
   pageStations,
   rankPage,
   ranked,
-  scoreMap,
   selectedStationId,
   stationMetrics,
 }) {
@@ -877,7 +745,7 @@ function MapPanel({
   return (
     <main className="mapc internet-mapc">
       <div className="rank-bar">
-        <div className="rb-card" title={`기준: ${advanced ? '고급점수' : '이용자수'}`}>
+        <div className="rb-card">
           <span className="rb-label">TOP</span>
           {[0, 1, 2].map((index) => (
             <div className="rb-fragment" key={index}>
@@ -899,7 +767,6 @@ function MapPanel({
         pageIds={pageIds}
         rankPage={rankPage}
         ranked={ranked}
-        scoreMap={scoreMap}
         selectedStationId={selectedStationId}
         stationMetrics={stationMetrics}
       />
@@ -1119,7 +986,7 @@ function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, 
   )
 }
 
-function Tooltip({ advanced, ranked, scoreMap, selectedStation, tooltip }) {
+function Tooltip({ ranked, selectedStation, tooltip }) {
   if (!tooltip) return <div className="tt" />
 
   const { station, rank, x, y } = tooltip
@@ -1129,7 +996,6 @@ function Tooltip({ advanced, ranked, scoreMap, selectedStation, tooltip }) {
     selectedStation && selectedStation.id !== station.id
       ? getDistanceKm(station, selectedStation).toFixed(1)
       : null
-  const score = advanced && scoreMap ? Math.round((scoreMap[station.id] || 0) * 100) : null
 
   return (
     <div className="tt show" style={{ left: x + 14, top: y - 10 }}>
@@ -1141,12 +1007,6 @@ function Tooltip({ advanced, ranked, scoreMap, selectedStation, tooltip }) {
         <span className="ttk">이용자 수</span>
         <span className="ttv">{station.count.toLocaleString()}명</span>
       </div>
-      {score !== null && (
-        <div className="ttr">
-          <span className="ttk">고급 점수</span>
-          <span className="ttv tt-score">{score}점</span>
-        </div>
-      )}
       <div className="ttr">
         <span className="ttk">현재 순위</span>
         <span className="ttv">#{rank || ranked.findIndex((item) => item.id === station.id) + 1}</span>
