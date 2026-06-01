@@ -958,6 +958,37 @@ function Dashboard({ filters, onClose, onStationClick, ranked, selectedStation, 
     return getHourlyData(selectedStation, filters)
   }, [selectedStation, filters])
 
+  const overallPeakHour = useMemo(() => {
+    if (!selectedStation || !selectedStation.hourly) return 0
+    let maxIdx = 0
+    let maxVal = -1
+    selectedStation.hourly.forEach((val, idx) => {
+      if (val > maxVal) {
+        maxVal = val
+        maxIdx = idx
+      }
+    })
+    return maxIdx
+  }, [selectedStation])
+
+  const overallPeakAge = useMemo(() => {
+    if (!selectedStation || !selectedStation.age) return ''
+    let maxAge = ''
+    let maxPct = -1
+    Object.entries(selectedStation.age).forEach(([age, pct]) => {
+      if (pct > maxPct) {
+        maxPct = pct
+        maxAge = age
+      }
+    })
+    return maxAge
+  }, [selectedStation])
+
+  const overallPeakDay = useMemo(() => {
+    if (!selectedStation) return '평일'
+    return selectedStation.wdr >= selectedStation.wkr ? '평일' : '주말'
+  }, [selectedStation])
+
   const [hoveredHour, setHoveredHour] = useState(null)
   const [hoveredValue, setHoveredValue] = useState(null)
 
@@ -980,14 +1011,40 @@ function Dashboard({ filters, onClose, onStationClick, ranked, selectedStation, 
 
         <div className="dsec">
           <div className="dst">선택 조건 이용자 수</div>
-          <div className="mhl">
-            <div className="mhlabel">조건 반영 합산 방문객</div>
-            <div className="mhval">
-              {selectedStation.count.toLocaleString()}
-              <span>명</span>
+          <div className="dsum-card">
+            <div className="mhl-left">
+              <div className="mhlabel">조건 반영 합산 방문객</div>
+              <div className="mhval">
+                {selectedStation.count.toLocaleString()}
+                <span>명</span>
+              </div>
+              <div className="mhsub">
+                조건 내 {rank}위
+              </div>
             </div>
-            <div className="mhsub">
-              조건 내 {rank}위
+            <div className="mhl-right">
+              <div className="mhs-title">📊 전체 피크 요약</div>
+              <div className="mhs-item">
+                <span className="mhs-label">피크 시간대</span>
+                <span className="mhs-val">
+                  <span className="mhs-icon">⏰</span>
+                  {formatHour(overallPeakHour)}~{formatHour(overallPeakHour + 1)}
+                </span>
+              </div>
+              <div className="mhs-item" style={{ marginTop: '5px' }}>
+                <span className="mhs-label">주요 이용 유형</span>
+                <span className="mhs-val">
+                  <span className="mhs-icon">👤</span>
+                  {overallPeakAge} ({selectedStation.age[overallPeakAge]}%)
+                </span>
+              </div>
+              <div className="mhs-item" style={{ marginTop: '5px' }}>
+                <span className="mhs-label">주요 이용 요일</span>
+                <span className="mhs-val">
+                  <span className="mhs-icon">📅</span>
+                  {overallPeakDay}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1089,7 +1146,7 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
 
   if (!hourlyValues || hourlyValues.length === 0) return null
 
-  const startIndex = 5
+  const startIndex = 6
   const slicedValues = hourlyValues.slice(startIndex)
   const maxVal = Math.max(...slicedValues, 100)
 
@@ -1262,10 +1319,10 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
         />
 
         {/* X-axis Labels */}
-        {[5, 10, 15, 20, 23].map((hour) => {
+        {[6, 11, 16, 21, 23].map((hour) => {
           const idx = hour - startIndex
           const x = paddingLeft + (idx / (slicedValues.length - 1)) * chartWidth
-          const labelText = hour === 5 ? '05:30' : `${String(hour).padStart(2, '0')}시`
+          const labelText = `${String(hour).padStart(2, '0')}시`
           return (
             <text
               fill="#A0AABF"
