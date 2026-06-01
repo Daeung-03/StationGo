@@ -133,7 +133,7 @@ function getRadius(station, stationMetrics) {
   const maxValue = Math.max(...visibleMetrics.map((item) => item.count), 1)
   const value = station.visible ? station.count : 0
 
-  return 7 + (27 - 7) * Math.sqrt(value / maxValue)
+  return 0.7 + (2.7 - 0.7) * Math.sqrt(value / maxValue)
 }
 
 function loadKakaoMaps(appKey) {
@@ -162,6 +162,7 @@ function loadKakaoMaps(appKey) {
 }
 
 function KakaoMetroMap({
+  boarding,
   onStationClick,
   onTooltipHide,
   onTooltipMove,
@@ -242,20 +243,23 @@ function KakaoMetroMap({
       const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
       const localRank = pageIds.indexOf(station.id) + 1
       const color = LINE_COLORS[station.lines[0]] || '#3B6DFF'
-      const circleRadius = Math.max(450, radius * 32)
+      const circleRadius = Math.max(45, radius * 32)
+      const RANK_FILL = { 1: '#F59E0B', 2: '#9CA3AF', 3: '#B45309' }
+      const rankFill = RANK_FILL[localRank] || '#3B6DFF'
+      const inPageRadius = Math.max(280, circleRadius * 4)
 
       if (station.visible) stationInfoMap[station.id] = { station, globalRank }
 
       // Visual circle
       const circle = new kakao.maps.Circle({
         center: position,
-        fillColor: selected ? '#FF4757' : inPage ? '#3B6DFF' : station.visible ? color : '#CBD5E1',
-        fillOpacity: station.visible ? (selected ? 0.95 : inPage ? 0.90 : 0.85) : 0.18,
+        fillColor: selected ? '#FF4757' : inPage ? rankFill : station.visible ? color : '#CBD5E1',
+        fillOpacity: station.visible ? (selected ? 0.95 : inPage ? 0.88 : 0.85) : 0.18,
         map,
-        radius: circleRadius,
-        strokeColor: '#ffffff',
+        radius: inPage ? inPageRadius : circleRadius,
+        strokeColor: inPage ? rankFill : '#ffffff',
         strokeOpacity: station.visible ? 0.9 : 0.2,
-        strokeWeight: 3,
+        strokeWeight: inPage ? 4 : 3,
         zIndex: selected ? 10 : inPage ? 8 : 5,
       })
       overlaysRef.current.push(circle)
@@ -303,6 +307,31 @@ function KakaoMetroMap({
           zIndex: 15,
         })
         overlaysRef.current.push(pin)
+
+        const pulse = new kakao.maps.CustomOverlay({
+          clickable: false,
+          content: `<div class="rank-pulse-ring rpr${localRank}"></div>`,
+          map,
+          position,
+          xAnchor: 0.5,
+          yAnchor: 0.5,
+          zIndex: 7,
+        })
+        overlaysRef.current.push(pulse)
+
+        if (boarding === '승차' || boarding === '하차') {
+          const arrow = boarding === '승차' ? '↑' : '↓'
+          const boardingLabel = new kakao.maps.CustomOverlay({
+            clickable: false,
+            content: `<span class="rank-boarding-label">${arrow} ${boarding}</span>`,
+            map,
+            position,
+            xAnchor: 0.5,
+            yAnchor: -1.2,
+            zIndex: 14,
+          })
+          overlaysRef.current.push(boardingLabel)
+        }
       }
     })
 
@@ -313,6 +342,7 @@ function KakaoMetroMap({
       container.removeEventListener('mouseleave', onNativeLeave)
     }
   }, [
+    boarding,
     loadState,
     onStationClick,
     onTooltipHide,
@@ -499,6 +529,7 @@ function App() {
           weekday={weekday}
         />
         <MapPanel
+          boarding={boarding}
           onRankNav={handleRankNav}
           onStationClick={handleStationClick}
           onTooltipHide={handleTooltipHide}
@@ -728,6 +759,7 @@ function ChoiceSection({ label, onChange, options, value }) {
 
 
 function MapPanel({
+  boarding,
   onRankNav,
   onStationClick,
   onTooltipHide,
@@ -762,6 +794,7 @@ function MapPanel({
       </div>
 
       <KakaoMetroMap
+        boarding={boarding}
         onStationClick={onStationClick}
         onTooltipHide={onTooltipHide}
         onTooltipMove={onTooltipMove}
