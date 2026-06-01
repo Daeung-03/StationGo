@@ -344,7 +344,7 @@ function KakaoMetroMap({
 function App() {
   const [rankPage, setRankPage] = useState(0)
   const [selectedStationId, setSelectedStationId] = useState(null)
-  const [timeRange, setTimeRange] = useState([0, 24])
+  const [timeRange, setTimeRange] = useState([6, 24])
   const [passengerRange, setPassengerRange] = useState([0, PASSENGER_RANGE_MAX])
   const [weekday, setWeekday] = useState('전체')
   const [boarding, setBoarding] = useState('전체')
@@ -419,7 +419,7 @@ function App() {
     } else if (name === '청년·학생층') {
       setActiveTypes(new Set(['청소년', '중고생', '일반']))
     } else if (name === '교통약자') {
-      setTimeRange([0, 24])
+      setTimeRange([6, 24])
       setActiveTypes(new Set(['아동', '우대권']))
     }
     // '사용자 정의': no filter changes, just updates the dropdown label
@@ -565,7 +565,7 @@ function Sidebar({
 }) {
   const [ddOpen, setDdOpen] = useState(false)
   const ddRef = useRef(null)
-  const timeLabel = timeRange[0] === 0 && timeRange[1] === 24 ? '전일' : `${formatHour(timeRange[0])}~${formatHour(timeRange[1])}`
+  const timeLabel = timeRange[0] === 6 && timeRange[1] === 24 ? '전일' : `${formatHour(timeRange[0])}~${formatHour(timeRange[1])}`
   const allPresets = [
     { icon: '🎛️', name: '사용자 정의', desc: '직접 필터 조건 설정', bg: '#F5F7FD' },
     { icon: '🚶', name: '출퇴근 패턴', desc: '평일 07–09·18–20시, 일반', bg: '#EEF2FF' },
@@ -630,7 +630,7 @@ function Sidebar({
           </div>
           <DualRange
             max={24}
-            min={0}
+            min={6}
             onChange={onTimeRangeChange}
             step={1}
             values={timeRange}
