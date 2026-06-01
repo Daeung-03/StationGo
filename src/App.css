@@ -8,7 +8,7 @@ button {
   font: inherit;
 }
 
-.metrolens-app {
+.stationgo-app {
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -71,6 +71,78 @@ button {
   font-size: 11px;
   color: #8A95AC;
   font-weight: 600;
+}
+
+.nav-info-wrap {
+  margin-left: auto;
+  position: relative;
+}
+
+.nav-info-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid #D1D9EE;
+  background: #F5F7FD;
+  color: #8A95AC;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  padding: 0;
+}
+
+.nav-info-btn:hover {
+  border-color: #3B6DFF;
+  color: #3B6DFF;
+  background: #EEF2FF;
+}
+
+.nav-info-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  background: #fff;
+  border: 1px solid #EAECF5;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
+  padding: 14px 16px;
+  z-index: 1000;
+}
+
+.nav-info-wrap:hover .nav-info-popup {
+  display: block;
+}
+
+.nav-info-popup::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-left: 1px solid #EAECF5;
+  border-top: 1px solid #EAECF5;
+  transform: rotate(45deg);
+}
+
+.nav-info-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3B6DFF;
+  margin-bottom: 8px;
+}
+
+.nav-info-body {
+  font-size: 12px;
+  color: #4A5568;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .main {

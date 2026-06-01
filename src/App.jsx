@@ -758,7 +758,7 @@ function App() {
   }
 
   return (
-    <div className="metrolens-app">
+    <div className="stationgo-app">
       <Navigation />
       <div className="main">
         <Sidebar
@@ -820,14 +820,15 @@ function Navigation() {
   return (
     <nav className="nav">
       <span className="logo">
-        Metro<em>Lens</em>
+        Station<em>Go</em>
       </span>
       <div className="npill on">지도 분석</div>
-      <div className="npill">역 비교</div>
-      <div className="npill">트렌드</div>
-      <div className="ml">
-        <div className="ybadge">📅 2024년</div>
-        <div className="ybadge">📍 서울시</div>
+      <div className="nav-info-wrap">
+        <button className="nav-info-btn" aria-label="프로젝트 정보">i</button>
+        <div className="nav-info-popup">
+          <div className="nav-info-title">프로젝트 정보</div>
+          <div className="nav-info-body">프로젝트 정보 작성 예정</div>
+        </div>
       </div>
     </nav>
   )

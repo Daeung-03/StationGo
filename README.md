@@ -1,16 +1,73 @@
-# React + Vite
+📦 사용 기술 및 패키지 (Tech Stack)
+JavaScript와 기본 CSS로만 진행합니다.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React (Vite): 프론트엔드 프레임워크 및 빠른 빌드 도구
 
-Currently, two official plugins are available:
+CSS: UI 스타일링 (클래스 기반)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+zustand: 전역 상태 관리 (선택된 검색 필터, 현재 클릭한 지하철역 등의 상태 저장)
 
-## React Compiler
+react-leaflet / leaflet: 중앙 지도 패널 구현 및 마커(지하철역) 시각화
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+recharts: 오른쪽 대시보드의 데이터 시각화 (파이 차트, 막대 그래프 등)
 
-## Expanding the ESLint configuration
+lucide-react: UI 구성에 필요한 깔끔한 SVG 아이콘 제공
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 기능정의
+
+### 1. 왼쪽 - 검색 컬럼
+
+기능 정의(지금은 프로토타입 만든거 기준 + 어제 회의에서 나온거)
+
+- [ ]  컬럼 선택(일반) - select 된 거 없음
+    - [ ]  시간대(슬라이더) 00:00 ~ 24:00
+    - [ ]  주말/평일
+    - [ ]  이용자 유형
+    - [ ]  승/하차
+    - [ ]  환승역
+    - [ ]  호선
+    - [ ]  승객 수 범위
+    - [ ]  컬럼 선택 세트(여기서 유형 사용) - 미정
+- [ ]  선택된 역이 있을 때 그 역에서 가장 이용자 수 많은 거 하이라이트
+    - [ ]  시간대는 1시간 단위(예를 들어 9:00~10:00가 피크면 거기만)
+    - [ ]  주말/평일 중 1
+    - [ ]  승객 수 범위는 컬럼 무시하고 전체 범위
+- [ ]  컬럼 선택(고급) - on/off 스위치 필요
+    - [ ]  off → on 또는 클릭 시 팝업 띄움 + 위의 기본 컬럼들 모두 회색 처리(non-select)
+    - [ ]  이퀄라이저 느낌으로 밑의 속성 체크 스위치 + 슬라이더(범위는 0~100, 10단위)
+        - [ ]  이용자수
+        - [ ]  피크 집중도(시간대 집중도 얘기하는 거 같음, 특정 구간의 비율만 유독 큰지)/안정도
+        - [ ]  특정 유저층 편향도(어린이, 청소년, 일반, 노인)
+        - [ ]  오전/오후/야간
+        - [ ]  승차/하차
+
+### 중간(지도) - 고급 검색 off시
+
+- [ ]  선택한 컬럼에 대한 이용자 수 시각화(전체 지도) - 원의 크기로 표기
+    - [ ]  해당 지도 내 이용자수 순위 제공, 이 때 1등부터 3순위 씩 순위를 넘겨가며 해당 3순위들 마크 표시 → 즉 처음에는 1-3순위가 표시되고, 그 표시된 라벨에 화살표를 넣어 오른쪽/왼쪽으로 넘길 수 있음. 오른쪽으로 3번 넘겨서 7-9 순위가 표시되면 지도상에서 7, 8, 9 순위에 해당하는 역 마크 표시
+    - [ ]  마크 표시는 자유롭게(그냥 핑 찍어도 되고)
+
+### 중간(지도) - 공통
+
+- [ ]  Hovering(순위(절대적), 거리(), +- selected 이용자수)
+- [ ]  Zooming(기준: 확대)
+- [ ]  Select/unselect 가능
+
+### 중간(지도) - 고급 검색 on시
+
+- [ ]  선택한 검색 옵션에 따라 계산된 점수의 크기로 시각화 - 똑같이 원의 크기 사용
+    - [ ]  위와 동일하게 순위 제공(단 기준만 다름)
+    - [ ]  마크 표시
+
+### 오른쪽 - 대쉬보드(unselected시 열리지 않음)
+
+- [ ]  대쉬보드 제공(클릭한 지하철역) → 고급 검색/일반 검색 구분 x
+    - [ ]  선택한 컬럼에 대해 정확한 이용자수(고급 검색 시 그냥 전체 기준 이용수 표기)
+    - [ ]  밑은 특정 컬럼이 아닌 해당 지하철역 해당 연도 모든 것을 분석
+        - [ ]  승객 유형별 분포 차트(파이차트)
+        - [ ]  선택한 지하철역의 시간대 별 이용자 수 top3(막대 그래프)
+        - [ ]  이 지하철이 가지고 있는 다른 속성
+- [ ]  위의 유형을 활용한 유사역 제공
+    - [ ]  기본 컬럼 기준으로 비율 계산하여 이 숫자만으로 유사도 검색 기준 찾아냄
+    - [ ]  아니면 가까운 역 top3
+    - [ ]  아니면 전체 이용자수 비슷한 역 3가지(순위상 인근)
