@@ -1073,16 +1073,43 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   flex-shrink: 0;
 }
 
-.rd1 {
-  background: #F59E0B;
+.rd1 { background: #F59E0B; }
+.rd2 { background: #9CA3AF; }
+.rd3 { background: #B45309; }
+
+@keyframes rankPinDrop {
+  0%   { transform: translateY(-20px); opacity: 0; }
+  55%  { transform: translateY(4px); opacity: 1; }
+  80%  { transform: translateY(-2px); }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
-.rd2 {
-  background: #9CA3AF;
+.rank-map-pin {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  animation: rankPinDrop 450ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
-.rd3 {
-  background: #B45309;
+.rmp1 { color: #F59E0B; }
+.rmp2 { color: #9CA3AF; }
+.rmp3 { color: #B45309; }
+
+.rmp-delay-2 { animation-delay: 80ms; }
+.rmp-delay-3 { animation-delay: 160ms; }
+
+.rmp-num {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  font-family: 'Noto Sans KR', sans-serif;
 }
 
 .rb-name {
@@ -1401,8 +1428,8 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   padding: 10px 14px;
   position: relative;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -1688,6 +1715,91 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   font-weight: 800;
   color: #3B6DFF;
   text-align: right;
+}
+
+@keyframes rankCirclePulse {
+  0%   { transform: scale(1); opacity: 0.75; }
+  70%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+.rank-pulse-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  position: relative;
+  pointer-events: none;
+}
+
+.rank-pulse-ring::before,
+.rank-pulse-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: rankCirclePulse 2.4s ease-out infinite;
+}
+
+.rank-pulse-ring::after {
+  animation-delay: 1.2s;
+}
+
+.rpr1::before, .rpr1::after { border: 2.5px solid #F59E0B; background: rgba(245, 158, 11, 0.22); }
+.rpr2::before, .rpr2::after { border: 2.5px solid #9CA3AF; background: rgba(156, 163, 175, 0.22); }
+.rpr3::before, .rpr3::after { border: 2.5px solid #B45309; background: rgba(180, 83, 9, 0.22); }
+
+.rank-boarding-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: #1A202C;
+  font-family: 'Noto Sans KR', sans-serif;
+  transform: translateY(8px);
+}
+
+/* ── Station Summary (피크·유형·주말평일) ────────────────────── */
+.mhl-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.stn-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  align-self: stretch;
+  justify-content: center;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.20);
+}
+
+.ssum-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ssum-lbl {
+  font-size: 7.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: .3px;
+  white-space: nowrap;
+}
+
+.ssum-val {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
