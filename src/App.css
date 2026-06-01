@@ -1422,10 +1422,10 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   margin-bottom: 6px;
 }
 
-.dsum-card {
+.mhl {
   background: linear-gradient(135deg, #3B6DFF, #6B8FFF);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 13px 15px;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -1433,7 +1433,7 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   gap: 12px;
 }
 
-.dsum-card::after {
+.mhl::after {
   content: '';
   position: absolute;
   right: -12px;
@@ -1446,17 +1446,11 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
 }
 
 .mhl-left {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  position: relative;
-}
-
-.mhl-right {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
 }
 
 .mhs-title {
@@ -1765,11 +1759,6 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
 }
 
 /* ── Station Summary (피크·유형·주말평일) ────────────────────── */
-.mhl-left {
-  flex: 1;
-  min-width: 0;
-}
-
 .stn-summary {
   display: flex;
   flex-direction: column;

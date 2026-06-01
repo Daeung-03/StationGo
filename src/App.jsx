@@ -423,6 +423,7 @@ function App() {
   const [activeTypes, setActiveTypes] = useState(() => new Set(USER_TYPES))
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
   const [selectedPreset, setSelectedPreset] = useState('사용자 정의')
+  const [simTab, setSimTab] = useState(0)
   const [tooltip, setTooltip] = useState(null)
 
   const filters = useMemo(() => ({
@@ -538,6 +539,11 @@ function App() {
     setRankPage((current) => Math.max(0, Math.min(pageCount - 1, current + direction)))
   }
 
+  const selectStationByName = (name) => {
+    const station = stationMetrics.find((item) => item.name === name && item.visible)
+    if (station) setSelectedStationId(station.id)
+  }
+
   return (
     <div className="stationgo-app">
       <Navigation />
@@ -576,12 +582,14 @@ function App() {
           stationMetrics={stationMetrics}
         />
         <Dashboard
-          filters={filters}
           metricMap={metricMap}
           onClose={() => setSelectedStationId(null)}
+          onSimTabChange={setSimTab}
           onStationClick={handleStationClick}
           ranked={ranked}
           selectedStation={selectedStation}
+          selectStationByName={selectStationByName}
+          simTab={simTab}
           stationMetrics={stationMetrics}
         />
       </div>
@@ -903,24 +911,6 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
         </div>
 
         <div className="dsec">
-          <div className="dst" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>시간대별 분포</span>
-            {hoveredHour !== null && (
-              <span className="fbadge">
-                {String(hoveredHour).padStart(2, '0')}시: {hoveredValue.toLocaleString()}명
-              </span>
-            )}
-          </div>
-          <HourlyChart
-            hourlyValues={hourlyValues}
-            onHoverChange={(hour, value) => {
-              setHoveredHour(hour)
-              setHoveredValue(value)
-            }}
-          />
-        </div>
-
-        <div className="dsec">
           <div className="dst">승객 유형별 분포</div>
           <div className="chwrap">
             <AgePie station={selectedStation} />
@@ -967,8 +957,18 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
 
         <div className="dsec no-border">
           <div className="dst">유사 역 추천</div>
+          <div className="simtabs">
+            {['패턴 유사', '가까운 역', '규모 유사'].map((tab, index) => (
+              <button className={`simtab ${simTab === index ? 'on' : ''}`} key={tab} onClick={() => onSimTabChange(index)}>
+                {tab}
+              </button>
+            ))}
+          </div>
           <SimilarStations
             onStationClick={onStationClick}
+            ranked={ranked}
+            selectStationByName={selectStationByName}
+            simTab={simTab}
             station={selectedStation}
             stationMetrics={stationMetrics}
           />
@@ -1342,327 +1342,34 @@ function AgePie({ station }) {
   )
 }
 
-function HourlyChart({ hourlyValues, onHoverChange }) {
-  const [hoveredIdx, setHoveredIdx] = useState(null)
-
-  if (!hourlyValues || hourlyValues.length === 0) return null
-
-  const startIndex = 6
-  const slicedValues = hourlyValues.slice(startIndex)
-  const maxVal = Math.max(...slicedValues, 100)
-
-  // Find top 3 hours for ranking labels (relative to the sliced values)
-  const sorted = slicedValues
-    .map((value, idx) => ({ hour: idx + startIndex, value }))
-    .sort((a, b) => b.value - a.value)
-
-  const rankMap = {} // hour -> rank (1, 2, 3)
-  sorted.slice(0, 3).forEach((item, index) => {
-    rankMap[item.hour] = index + 1
-  })
-
-  // Position layout calculation to avoid overlaps of adjacent/nearby ranks
-  const top3 = sorted.slice(0, 3)
-  const chronoTop3 = [...top3].sort((a, b) => a.hour - b.hour)
-  const badgePositions = {}
-
-  let lastPos = 'BOTTOM'
-  chronoTop3.forEach((item, idx) => {
-    const rank = rankMap[item.hour]
-    let pos = 'TOP'
-    if (idx > 0 && Math.abs(item.hour - chronoTop3[idx - 1].hour) <= 2) {
-      // Alternate if hours are close to prevent horizontal overlap
-      pos = lastPos === 'TOP' ? 'BOTTOM' : 'TOP'
-    } else {
-      // Default: rank 1 at TOP, others alternate
-      pos = rank === 1 ? 'TOP' : 'BOTTOM'
-    }
-    lastPos = pos
-
-    const badgeWidth = 24
-    const badgeHeight = 12
-    const badgeY = pos === 'TOP' ? -badgeHeight - 8 : 8
-
-    badgePositions[item.hour] = {
-      badgeX: -badgeWidth / 2,
-      badgeY: badgeY,
-      textX: 0,
-      textY: badgeY + 8.5,
-    }
-  })
-
-  const width = 276
-  const height = 120
-  const paddingLeft = 28
-  const paddingRight = 12
-  const paddingTop = 22
-  const paddingBottom = 20
-
-  const chartWidth = width - paddingLeft - paddingRight
-  const chartHeight = height - paddingTop - paddingBottom
-
-  // Generate points
-  const points = slicedValues.map((val, idx) => {
-    const hour = idx + startIndex
-    const x = paddingLeft + (idx / (slicedValues.length - 1)) * chartWidth
-    const y = height - paddingBottom - (val / maxVal) * chartHeight
-    return { hour, val, x, y }
-  })
-
-  // Create path for the line chart
-  const linePath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(height - paddingBottom).toFixed(1)} L ${points[0].x.toFixed(1)} ${(height - paddingBottom).toFixed(1)} Z`
-
-  // Colors for ranks (1st: Amber, 2nd: Silver/Gray, 3rd: Bronze/Brown)
-  const rankColors = {
-    1: '#F59E0B',
-    2: '#9CA3AF',
-    3: '#B45309',
-  }
-
-  const handleMouseMove = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const mouseX = event.clientX - rect.left
-
-    // Find closest point based on X coordinate
-    let closestIdx = 0
-    let minDiff = Infinity
-    points.forEach((p, idx) => {
-      const diff = Math.abs(p.x - mouseX)
-      if (diff < minDiff) {
-        minDiff = diff
-        closestIdx = idx
-      }
-    })
-
-    // If mouse is within range of the chart
-    if (mouseX >= paddingLeft - 5 && mouseX <= width - paddingRight + 5) {
-      setHoveredIdx(closestIdx)
-      onHoverChange(points[closestIdx].hour, points[closestIdx].val)
-    } else {
-      setHoveredIdx(null)
-      onHoverChange(null, null)
-    }
-  }
-
-  const handleMouseLeave = () => {
-    setHoveredIdx(null)
-    onHoverChange(null, null)
-  }
-
-  const hoveredPoint = hoveredIdx !== null ? points[hoveredIdx] : null
-
-  return (
-    <div
-      className="hourly-chart-container"
-      onMouseLeave={handleMouseLeave}
-      onMouseMove={handleMouseMove}
-      style={{ position: 'relative', marginTop: '6px', userSelect: 'none' }}
-    >
-      <svg height={height} style={{ overflow: 'visible' }} width={width}>
-        <defs>
-          <linearGradient id="hourlyAreaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#3B6DFF" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#3B6DFF" stopOpacity="0.00" />
-          </linearGradient>
-        </defs>
-
-        {/* Grid lines */}
-        {[0.25, 0.6, 1].map((ratio, idx) => {
-          const yVal = height - paddingBottom - ratio * chartHeight
-          const labelVal = Math.round(ratio * maxVal)
-          return (
-            <g key={idx}>
-              <line
-                stroke="#EEF0F9"
-                strokeDasharray="2,2"
-                strokeWidth="1"
-                x1={paddingLeft}
-                x2={width - paddingRight}
-                y1={yVal}
-                y2={yVal}
-              />
-              <text
-                fill="#A0AABF"
-                fontSize="8"
-                fontWeight="600"
-                textAnchor="end"
-                x={paddingLeft - 5}
-                y={yVal + 3}
-              >
-                {labelVal >= 1000 ? `${(labelVal / 1000).toFixed(0)}k` : labelVal}
-              </text>
-            </g>
-          )
-        })}
-
-        {/* X-axis line */}
-        <line
-          stroke="#EAECF5"
-          strokeWidth="1"
-          x1={paddingLeft}
-          x2={width - paddingRight}
-          y1={height - paddingBottom}
-          y2={height - paddingBottom}
-        />
-
-        {/* Area fill */}
-        <path d={areaPath} fill="url(#hourlyAreaGrad)" />
-
-        {/* Line path */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke="#3B6DFF"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-        />
-
-        {/* X-axis Labels */}
-        {[6, 11, 16, 21, 23].map((hour) => {
-          const idx = hour - startIndex
-          const x = paddingLeft + (idx / (slicedValues.length - 1)) * chartWidth
-          const labelText = `${String(hour).padStart(2, '0')}시`
-          return (
-            <text
-              fill="#A0AABF"
-              fontSize="8"
-              fontWeight="600"
-              key={hour}
-              textAnchor="middle"
-              x={x}
-              y={height - 6}
-            >
-              {labelText}
-            </text>
-          )
-        })}
-
-        {/* Hover vertical line */}
-        {hoveredPoint && (
-          <g>
-            <line
-              stroke="#3B6DFF"
-              strokeDasharray="2,2"
-              strokeOpacity="0.4"
-              strokeWidth="1.5"
-              x1={hoveredPoint.x}
-              x2={hoveredPoint.x}
-              y1={paddingTop}
-              y2={height - paddingBottom}
-            />
-            <circle
-              cx={hoveredPoint.x}
-              cy={hoveredPoint.y}
-              fill="#3B6DFF"
-              r="5"
-              stroke="#fff"
-              strokeWidth="2"
-            />
-          </g>
-        )}
-
-        {/* First render all Rank Badge backgrounds and texts */}
-        {points.map((p) => {
-          const rank = rankMap[p.hour]
-          if (!rank) return null
-
-          const color = rankColors[rank]
-          const posInfo = badgePositions[p.hour] || { badgeX: -12, badgeY: -16, textX: 0, textY: -7.5 }
-
-          return (
-            <g key={`badge-${p.hour}`} style={{ filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.15))' }}>
-              {/* Badge Background */}
-              <rect
-                fill={color}
-                height={12}
-                rx="3"
-                width={24}
-                x={p.x + posInfo.badgeX}
-                y={p.y + posInfo.badgeY}
-              />
-              {/* Badge Text */}
-              <text
-                fill="#ffffff"
-                fontSize="8"
-                fontWeight="900"
-                textAnchor="middle"
-                x={p.x}
-                y={p.y + posInfo.textY}
-              >
-                {rank}위
-              </text>
-            </g>
-          )
-        })}
-
-        {/* Then render all Dots and Pulsing Rings on top of everything */}
-        {points.map((p) => {
-          const rank = rankMap[p.hour]
-          if (!rank) return null
-
-          const color = rankColors[rank]
-
-          return (
-            <g key={`dot-${p.hour}`}>
-              {/* Outer pulsing ring for rank 1 */}
-              {rank === 1 && (
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  fill="none"
-                  r="6.5"
-                  stroke={color}
-                  strokeOpacity="0.4"
-                  strokeWidth="1.5"
-                />
-              )}
-              {/* Dot */}
-              <circle
-                cx={p.x}
-                cy={p.y}
-                fill="#fff"
-                r="3.5"
-                stroke={color}
-                strokeWidth="2"
-              />
-            </g>
-          )
-        })}
-      </svg>
-    </div>
-  )
-}
-
-function SimilarStations({ onStationClick, station, stationMetrics }) {
-  const items = useMemo(() => {
-    const allOtherStations = stationMetrics.filter((item) => item.id !== station.id && item.visible)
-    const candidates = allOtherStations.length >= 3 ? allOtherStations : STATIONS.filter((item) => item.id !== station.id)
-
-    const hash = (station.name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-
-    const available = [...candidates]
-    const picked = []
-
-    for (let i = 0; i < 3; i++) {
-      if (available.length === 0) break
-      const index = (hash + i * 7) % available.length
-      picked.push(available[index])
-      if (available.length > 3) {
-        available.splice(index, 1)
-      }
+function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, station, stationMetrics }) {
+  const items = (() => {
+    if (simTab === 0) {
+      return station.simPat.map((item, index) => ({ ...item, rank: index + 1, onClick: () => selectStationByName(item.name), score: `${item.pct}%` }))
     }
 
-    const dummyPercentages = [98, 95, 91]
-    return picked.map((item, index) => ({
-      name: item.name,
-      lines: item.lines.join('·'),
-      rank: index + 1,
-      onClick: () => onStationClick(item.id),
-      score: `${dummyPercentages[index]}%`,
-    }))
-  }, [station, stationMetrics, onStationClick])
+    if (simTab === 1) {
+      return stationMetrics
+        .filter((item) => item.id !== station.id && item.visible)
+        .map((item) => ({ ...item, km: getDistanceKm(item, station).toFixed(1) }))
+        .sort((a, b) => parseFloat(a.km) - parseFloat(b.km))
+        .slice(0, 3)
+        .map((item, index) => ({ name: item.name, lines: item.lines.join('·'), rank: index + 1, onClick: () => onStationClick(item.id), score: `~${item.km}km` }))
+    }
+
+    return stationMetrics
+      .filter((item) => item.id !== station.id && item.visible)
+      .map((item) => ({ ...item, diff: Math.abs(item.count - station.count) }))
+      .sort((a, b) => a.diff - b.diff)
+      .slice(0, 3)
+      .map((item, index) => ({
+        name: item.name,
+        lines: `전체 ${ranked.findIndex((rankedStation) => rankedStation.id === item.id) + 1}위`,
+        rank: index + 1,
+        onClick: () => onStationClick(item.id),
+        score: `${item.count.toLocaleString()}명`,
+      }))
+  })()
 
   return (
     <div className="simlist">
