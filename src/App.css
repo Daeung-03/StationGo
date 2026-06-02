@@ -1256,6 +1256,36 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   margin-top: 1px;
 }
 
+.rn-stations {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rn-station-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rn-sep {
+  font-size: 10px;
+  color: #C4CAD9;
+  margin: 0 3px;
+}
+
+.rn-rank-num {
+  font-size: 9px;
+  font-weight: 600;
+  color: #A0AABF;
+}
+
+.rn-station-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #3B6DFF;
+}
+
 .tt {
   position: fixed;
   background: #fff;
@@ -1741,6 +1771,7 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
 .rpr1::before, .rpr1::after { border: 2.5px solid #F59E0B; background: rgba(245, 158, 11, 0.22); }
 .rpr2::before, .rpr2::after { border: 2.5px solid #9CA3AF; background: rgba(156, 163, 175, 0.22); }
 .rpr3::before, .rpr3::after { border: 2.5px solid #B45309; background: rgba(180, 83, 9, 0.22); }
+.rpr-common::before, .rpr-common::after { border: 2.5px solid #3B6DFF; background: rgba(59, 109, 255, 0.22); }
 
 .rank-boarding-label {
   display: inline-flex;
