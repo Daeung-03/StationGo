@@ -1021,7 +1021,7 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
 
   if (!hourlyValues || hourlyValues.length === 0) return null
 
-  const startIndex = 5
+  const startIndex = 6
   const slicedValues = hourlyValues.slice(startIndex)
   const maxVal = Math.max(...slicedValues, 100)
 
@@ -1180,10 +1180,10 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
           strokeWidth="2"
         />
 
-        {[5, 10, 15, 20, 23].map((hour) => {
+        {[6, 11, 16, 21, 23].map((hour) => {
           const idx = hour - startIndex
           const x = paddingLeft + (idx / (slicedValues.length - 1)) * chartWidth
-          const labelText = hour === 5 ? '05:30' : `${String(hour).padStart(2, '0')}시`
+          const labelText = `${String(hour).padStart(2, '0')}시`
           return (
             <text
               fill="#A0AABF"
