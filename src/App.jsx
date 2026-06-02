@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { buildStationsFromInfo } from './data/loaders.js'
+import rank1Img from './assets/rank1.png'
+import rank2Img from './assets/rank2.png'
+import rank3Img from './assets/rank3.png'
+import rankCommonImg from './assets/rank_common.png'
 
 const KAKAO_MAP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY
 
@@ -284,7 +288,7 @@ function KakaoMetroMap({
       const color = LINE_COLORS[station.lines[0]] || '#3B6DFF'
       const circleRadius = Math.max(45, radius * 32)
       const RANK_FILL = { 1: '#F59E0B', 2: '#9CA3AF', 3: '#B45309' }
-      const rankFill = RANK_FILL[localRank] || '#3B6DFF'
+      const rankFill = RANK_FILL[globalRank] || '#3B6DFF'
       const inPageRadius = Math.max(280, circleRadius * 4)
 
       if (station.visible) stationInfoMap[station.id] = { station, globalRank }
@@ -293,7 +297,7 @@ function KakaoMetroMap({
       const circle = new kakao.maps.Circle({
         center: position,
         fillColor: inPage ? rankFill : selected ? '#FF4757' : '#CBD5E1',
-        fillOpacity: station.visible ? (inPage ? 0.88 : selected ? 0.95 : 0.85) : 0.18,
+        fillOpacity: station.visible ? (inPage ? 0.40 : selected ? 0.95 : 0.85) : 0.18,
         map,
         radius: inPage ? inPageRadius : circleRadius,
         strokeColor: inPage ? rankFill : '#ffffff',
@@ -336,9 +340,10 @@ function KakaoMetroMap({
 
       if (inPage && !selected) {
         const rmpDelayClass = localRank >= 2 ? ` rmp-delay-${localRank}` : ''
+        const rankImgSrc = globalRank === 1 ? rank1Img : globalRank === 2 ? rank2Img : globalRank === 3 ? rank3Img : rankCommonImg
         const pin = new kakao.maps.CustomOverlay({
           clickable: false,
-          content: `<div class="rank-map-pin rmp${localRank}${rmpDelayClass}"><svg width="28" height="36" viewBox="0 0 20 26" xmlns="http://www.w3.org/2000/svg"><path d="M10 25 C10 25 1 16 1 10 A9 9 0 0 0 19 10 C19 16 10 25 10 25 Z" fill="currentColor"/></svg><span class="rmp-num">${localRank}</span></div>`,
+          content: `<div class="rank-map-pin${rmpDelayClass}"><img src="${rankImgSrc}" width="44" height="56" style="display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35))"/></div>`,
           map,
           position: new kakao.maps.LatLng(station.lat, station.lng),
           xAnchor: 0.5,
@@ -347,9 +352,10 @@ function KakaoMetroMap({
         })
         overlaysRef.current.push(pin)
 
+        const pulseClass = globalRank <= 3 ? `rpr${globalRank}` : 'rpr-common'
         const pulse = new kakao.maps.CustomOverlay({
           clickable: false,
-          content: `<div class="rank-pulse-ring rpr${localRank}"></div>`,
+          content: `<div class="rank-pulse-ring ${pulseClass}"></div>`,
           map,
           position,
           xAnchor: 0.5,
@@ -825,7 +831,7 @@ function MapPanel({
               {index > 0 && <div className="rb-sep" />}
               <div className="rb-item">
                 <div className={`rdot ${RANK_DOT_CLASSES[index]}`}>{index + 1}</div>
-                <span className="rb-name">{pageStations[index]?.name || '—'}</span>
+                <span className="rb-name">{ranked[index]?.name || '—'}</span>
               </div>
             </div>
           ))}
@@ -847,11 +853,17 @@ function MapPanel({
 
       <div className="rank-nav">
         <button className="rn-arr" disabled={rankPage === 0} onClick={() => onRankNav(-1)}>‹</button>
-        <div>
-          <span className="rn-main">
-            {rankStart}위 ~ {rankEnd}위
-          </span>
-          <span className="rn-sub">← → 로 순위 탐색</span>
+        <div className="rn-stations">
+          {pageStations.length === 0
+            ? <span className="rn-main">—</span>
+            : pageStations.map((station, idx) => (
+              <span className="rn-station-item" key={station.id}>
+                {idx > 0 && <span className="rn-sep">·</span>}
+                <span className="rn-rank-num">{rankStart + idx}위</span>
+                <span className="rn-station-name">{station.name}</span>
+              </span>
+            ))
+          }
         </div>
         <button className="rn-arr" disabled={rankPage === pageCount - 1} onClick={() => onRankNav(1)}>›</button>
       </div>
