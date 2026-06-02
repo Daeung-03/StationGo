@@ -403,6 +403,55 @@ function KakaoMetroMap({
     stationMetrics,
   ])
 
+  const selectedStationIdRef = useRef(selectedStationId)
+  useEffect(() => {
+    selectedStationIdRef.current = selectedStationId
+  }, [selectedStationId])
+
+  // Fit map bounds only when pageIds (filters or rank bar page) changes
+  useEffect(() => {
+    if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps || !pageIds || pageIds.length === 0) return
+
+    const map = mapRef.current
+    const bounds = new kakao.maps.LatLngBounds()
+    let hasPoints = false
+
+    stationMetrics.forEach((station) => {
+      if (pageIds.includes(station.id)) {
+        bounds.extend(new kakao.maps.LatLng(station.lat, station.lng))
+        hasPoints = true
+      }
+    })
+
+    if (hasPoints) {
+      const isDashOpen = !!selectedStationIdRef.current
+      const paddingRight = isDashOpen ? 120 : 50
+      map.setBounds(bounds, 50, paddingRight, 50, 50)
+      if (map.getLevel() < 5) {
+        map.setLevel(5)
+      }
+    }
+  }, [loadState, pageIds, stationMetrics])
+
+  // Relayout map when dashboard opens or closes (selectedStationId changes)
+  useEffect(() => {
+    if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return
+
+    const map = mapRef.current
+
+    // Call relayout immediately
+    map.relayout()
+
+    // Call relayout again after transition finishes
+    const timer = setTimeout(() => {
+      map.relayout()
+    }, 300)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [loadState, selectedStationId])
+
   return (
     <>
       <div className="internet-map kakao-map" ref={containerRef} />
@@ -432,7 +481,6 @@ function App() {
   const [activeTypes, setActiveTypes] = useState(() => new Set(USER_TYPES))
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
   const [selectedPreset, setSelectedPreset] = useState('사용자 정의')
-  const [simTab, setSimTab] = useState(0)
   const [tooltip, setTooltip] = useState(null)
 
   const filters = useMemo(() => ({
@@ -593,12 +641,10 @@ function App() {
         <Dashboard
           metricMap={metricMap}
           onClose={() => setSelectedStationId(null)}
-          onSimTabChange={setSimTab}
           onStationClick={handleStationClick}
           ranked={ranked}
           selectedStation={selectedStation}
           selectStationByName={selectStationByName}
-          simTab={simTab}
           stationMetrics={stationMetrics}
         />
       </div>
@@ -874,7 +920,7 @@ function MapPanel({
   )
 }
 
-function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedStation, selectStationByName, simTab, stationMetrics }) {
+function Dashboard({ onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics }) {
   const [hoveredHour, setHoveredHour] = useState(null)
   const [hoveredVal, setHoveredVal] = useState(null)
 
@@ -926,6 +972,18 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
         </div>
 
         <div className="dsec">
+          <div className="dst" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>시간대별 이용자</span>
+            {hoveredHour !== null && (
+              <span style={{ fontSize: '11px', color: '#3B6DFF', fontWeight: 600 }}>
+                {String(hoveredHour).padStart(2, '0')}시 · {hoveredVal?.toLocaleString()}명
+              </span>
+            )}
+          </div>
+          <HourlyChart hourlyValues={selectedStation.hourly} onHoverChange={handleHourHover} />
+        </div>
+
+        <div className="dsec">
           <div className="dst">승객 유형별 분포</div>
           <div className="chwrap">
             <AgePie station={selectedStation} />
@@ -946,46 +1004,11 @@ function Dashboard({ onClose, onSimTabChange, onStationClick, ranked, selectedSt
           </div>
         </div>
 
-        <div className="dsec">
-          <div className="dst" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>시간대별 이용자</span>
-            {hoveredHour !== null && (
-              <span style={{ fontSize: '11px', color: '#3B6DFF', fontWeight: 600 }}>
-                {String(hoveredHour).padStart(2, '0')}시 · {hoveredVal?.toLocaleString()}명
-              </span>
-            )}
-          </div>
-          <HourlyChart hourlyValues={selectedStation.hourly} onHoverChange={handleHourHover} />
-        </div>
-
-        <div className="dsec">
-          <div className="dst">역 속성</div>
-          <div className="agrid">
-            {Object.entries(selectedStation.attr).map(([key, value]) => (
-              <div className="aitem" key={key}>
-                <div className="akey">{key}</div>
-                <div className="aval">{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="dsec no-border">
           <div className="dst">유사 역 추천</div>
-          <div className="simtabs">
-            {['패턴 유사', '가까운 역', '규모 유사'].map((tab, index) => (
-              <button className={`simtab ${simTab === index ? 'on' : ''}`} key={tab} onClick={() => onSimTabChange(index)}>
-                {tab}
-              </button>
-            ))}
-          </div>
           <SimilarStations
-            onStationClick={onStationClick}
-            ranked={ranked}
             selectStationByName={selectStationByName}
-            simTab={simTab}
             station={selectedStation}
-            stationMetrics={stationMetrics}
           />
         </div>
       </div>
@@ -1357,34 +1380,48 @@ function AgePie({ station }) {
   )
 }
 
-function SimilarStations({ onStationClick, ranked, selectStationByName, simTab, station, stationMetrics }) {
-  const items = (() => {
-    if (simTab === 0) {
-      return station.simPat.map((item, index) => ({ ...item, rank: index + 1, onClick: () => selectStationByName(item.name), score: `${item.pct}%` }))
+function SimilarStations({ selectStationByName, station }) {
+  const items = useMemo(() => {
+    if (!station || !station.hourly) return []
+
+    // Helper for Cosine Similarity
+    const getCosineSimilarity = (a, b) => {
+      let dotProduct = 0
+      let normA = 0
+      let normB = 0
+      for (let i = 0; i < a.length; i++) {
+        dotProduct += a[i] * b[i]
+        normA += a[i] * a[i]
+        normB += b[i] * b[i]
+      }
+      if (normA === 0 || normB === 0) return 0
+      return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
     }
 
-    if (simTab === 1) {
-      return stationMetrics
-        .filter((item) => item.id !== station.id && item.visible)
-        .map((item) => ({ ...item, km: getDistanceKm(item, station).toFixed(1) }))
-        .sort((a, b) => parseFloat(a.km) - parseFloat(b.km))
-        .slice(0, 3)
-        .map((item, index) => ({ name: item.name, lines: item.lines.join('·'), rank: index + 1, onClick: () => onStationClick(item.id), score: `~${item.km}km` }))
-    }
-
-    return stationMetrics
-      .filter((item) => item.id !== station.id && item.visible)
-      .map((item) => ({ ...item, diff: Math.abs(item.count - station.count) }))
-      .sort((a, b) => a.diff - b.diff)
+    // Calculate similarity with all other stations in STATIONS
+    const list = STATIONS
+      .filter((s) => s.id !== station.id)
+      .map((s) => {
+        const sim = getCosineSimilarity(station.hourly, s.hourly)
+        return {
+          id: s.id,
+          name: s.name,
+          lines: s.lines.join('·'),
+          similarity: sim,
+          pct: Math.round(sim * 100)
+        }
+      })
+      .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 3)
-      .map((item, index) => ({
-        name: item.name,
-        lines: `전체 ${ranked.findIndex((rankedStation) => rankedStation.id === item.id) + 1}위`,
-        rank: index + 1,
-        onClick: () => onStationClick(item.id),
-        score: `${item.count.toLocaleString()}명`,
-      }))
-  })()
+
+    return list.map((item, index) => ({
+      name: item.name,
+      lines: item.lines,
+      rank: index + 1,
+      onClick: () => selectStationByName(item.name),
+      score: `${item.pct}%`,
+    }))
+  }, [station, selectStationByName])
 
   return (
     <div className="simlist">
