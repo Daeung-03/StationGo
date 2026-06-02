@@ -40,9 +40,10 @@ function parseCSV(text) {
 export function buildStationsFromInfo() {
   const rows = parseCSV(stationInfoRaw)
   const stationMap = new Map()
+  const simMap = new Map()
 
   for (const row of rows) {
-    const name = row['역명']
+    const name = row['기준역']
     if (!stationMap.has(name)) {
       stationMap.set(name, {
         id: name,
@@ -57,6 +58,11 @@ export function buildStationsFromInfo() {
       if (!stationMap.get(name).lines.includes(lineName)) {
         stationMap.get(name).lines.push(lineName)
       }
+    }
+
+    if (!simMap.has(name)) {
+      const sims = [row['유사역_1'], row['유사역_2'], row['유사역_3']].filter(Boolean)
+      if (sims.length) simMap.set(name, sims)
     }
   }
 
@@ -80,13 +86,13 @@ export function buildStationsFromInfo() {
       age:    s?.age    ?? { 아동: 10, 청소년: 15, 중고생: 10, 일반: 50, 우대권: 15 },
 
       attr: {
-        구: '미정',     // TODO: 행정구역 데이터 필요
-        개통: '미정',   // TODO: 개통 연도 데이터 필요
-        출구: '미정',   // TODO: 출구 수 데이터 필요
+        구: '미정',
+        개통: '미정',
+        출구: '미정',
         노선: `${station.lines.length}개`,
       },
 
-      simPat: [],  // TODO: 패턴 유사도 계산 후 채울 것
+      simPat: simMap.get(station.name) ?? [],
     }
   })
 }
