@@ -52,7 +52,12 @@ export function buildStationsFromInfo() {
         lat: parseFloat(row['y']),
       })
     }
-    stationMap.get(name).lines.push(row['호선'])
+    const lineNames = row['호선'].split('/').map(l => l.trim())
+    for (const lineName of lineNames) {
+      if (!stationMap.get(name).lines.includes(lineName)) {
+        stationMap.get(name).lines.push(lineName)
+      }
+    }
   }
 
   return Array.from(stationMap.values()).map(station => {
