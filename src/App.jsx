@@ -293,7 +293,7 @@ function KakaoMetroMap({
       // Visual circle
       const circle = new kakao.maps.Circle({
         center: position,
-        fillColor: inPage ? rankFill : selected ? '#FF4757' : '#CBD5E1',
+        fillColor: inPage ? rankFill : selected ? '#FF4757' : '#f5dd00',
         fillOpacity: station.visible ? (inPage ? 0.40 : selected ? 0.95 : 0.85) : 0.18,
         map,
         radius: inPage ? inPageRadius : circleRadius,
@@ -471,6 +471,27 @@ function KakaoMetroMap({
   useEffect(() => {
     onVisibleStationsChangeRef.current = onVisibleStationsChange
   }, [onVisibleStationsChange])
+
+  // zoom_changed: toggle map-zoomed-out class to hide non-prominent labels when zoomed out
+  useEffect(() => {
+    if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return undefined
+
+    const kakao = window.kakao
+    const map = mapRef.current
+    const container = containerRef.current
+    const LABEL_ZOOM_THRESHOLD = 5  // level ≤ 5 → show all labels; level ≥ 6 → hide non-pinned/non-selected
+
+    const updateZoomClass = () => {
+      if (container) container.classList.toggle('map-zoomed-out', map.getLevel() > LABEL_ZOOM_THRESHOLD)
+    }
+
+    updateZoomClass()
+    kakao.maps.event.addListener(map, 'zoom_changed', updateZoomClass)
+
+    return () => {
+      kakao.maps.event.removeListener(map, 'zoom_changed', updateZoomClass)
+    }
+  }, [loadState])
 
   // idle 이벤트 리스너 등록
   useEffect(() => {
