@@ -1,16 +1,21 @@
 /**
- * dummy_data.csv(EUC-KR) → src/data/passenger_summary.json 생성 스크립트
+ * temp.csv (new long-format) → src/data/passenger_summary.json
  *
- * 출력 구조 (역별):
- *   numWeekdays / numWeekends   : 평일·주말 날짜 수 (평균 계산용)
- *   data[direction][type][weekday|weekend][h]  : 해당 조건 합산값 (24슬롯)
- *   hourly[h]      : 전체 일평균 (PeakCard·차트 표시용)
- *   wdr / wkr      : 평일·주말 상대 비율 (PeakCard 요일 표시용)
- *   cnt            : 필터 없는 기본 일평균 (passengerRange 슬라이더 계산용)
- *   age            : 유형별 비중 % (파이차트용)
+ * 입력 컬럼:
+ *   날짜, 호선, 역명, 역번호, 구분, 주말구분, 환승역, 시간대,
+ *   이용객수_노인, 이용객수_어린이, 이용객수_외국인, 이용객수_일반,
+ *   이용객수_직원, 이용객수_청소년, 이용객수_전체, 위도, 경도
  *
- * 확장성: 행 수가 늘어도 출력 JSON 크기는
- *   역 수 × 2방향 × 5유형 × 2요일 × 24시간 = 역당 480개 숫자 (고정)
+ * 유형 매핑:
+ *   이용객수_어린이           → 아동
+ *   이용객수_청소년           → 청소년  (중고생 데이터 없음 — 0으로 유지)
+ *   이용객수_일반 + 직원 + 외국인 → 일반
+ *   이용객수_노인             → 우대권
+ *
+ * 시간대 처리:
+ *   "06시간대이전"  → 0-5시 균등 분배 (÷6)
+ *   "HH-HH시간대"  → 해당 시(H)에 직접 가산
+ *   "24시간대이후" → 무시
  *
  * 재실행: node scripts/preprocess.mjs
  */
@@ -20,12 +25,11 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const CSV_PATH = join(__dirname, '../src/data/dummy_data.csv')
+const CSV_PATH = join(__dirname, '../src/data/final_merged_weekly_nonzero.csv')
 const OUT_PATH = join(__dirname, '../src/data/passenger_summary.json')
 
 // ── 1. CSV 읽기 (UTF-8 BOM 자동 제거) ────────────────────────────────────
 const rawBuf = readFileSync(CSV_PATH)
-// UTF-8 BOM(EF BB BF) 제거
 const csvText = rawBuf[0] === 0xEF && rawBuf[1] === 0xBB && rawBuf[2] === 0xBF
   ? rawBuf.slice(3).toString('utf8')
   : rawBuf.toString('utf8')
@@ -33,43 +37,17 @@ const csvText = rawBuf[0] === 0xEF && rawBuf[1] === 0xBB && rawBuf[2] === 0xBF
 // ── 2. CSV 파싱 ───────────────────────────────────────────────────────────
 const [headerLine, ...dataLines] = csvText.trim().split('\n')
 const headers = headerLine.split(',').map(h => h.trim())
-
-// CSV 시간대 컬럼 — 인덱스 0 = "06시간대이전", 1-18 = 시간대별, 19 = "24시간대이후"
-const CSV_TIME_COLS = [
-  '06시간대이전',
-  '06-07시간대', '07-08시간대', '08-09시간대', '09-10시간대',
-  '10-11시간대', '11-12시간대', '12-13시간대', '13-14시간대',
-  '14-15시간대', '15-16시간대', '16-17시간대', '17-18시간대',
-  '18-19시간대', '19-20시간대', '20-21시간대', '21-22시간대',
-  '22-23시간대', '23-24시간대',
-  '24시간대이후',  // 무시
-]
-
 const colIndex = {}
 headers.forEach((h, i) => { colIndex[h] = i })
-
-// 역명 정규화 (dummy_data ↔ station_info 불일치 보정)
-const NAME_NORMALIZE = {
-  '동대문역사문화공원(DDP)': '동대문역사문화공원',
-  '삼각지(전쟁기념관)': '삼각지',
-  '상봉': '상봉(시외버스터미널)',
-}
-
-// 승객유형 → 앱 내부 카테고리 매핑
-const TYPE_MAP = {
-  '어린이': '아동', '영어 어린이': '아동', '일어 어린이': '아동', '중국어 어린이': '아동',
-  '일반': '일반', '영어 일반': '일반', '일어 일반': '일반', '중국어 일반': '일반', '직원': '일반',
-  '중고생': '중고생',
-  '청소년': '청소년',
-  '우대권': '우대권',
-}
 
 const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권']
 const DIRECTIONS = ['승차', '하차']
 
-function isWeekday(dateStr) {
-  const day = new Date(dateStr).getDay()
-  return day >= 1 && day <= 5
+// "06-07시간대" → 6, "23-24시간대" → 23
+// "06시간대이전" / "24시간대이후" → null (호출부에서 별도 처리)
+function slotToHour(slot) {
+  const m = slot.match(/^(\d+)-\d+시간대$/)
+  return m ? parseInt(m[1], 10) : null
 }
 
 // ── 3. 큐브 집계 ─────────────────────────────────────────────────────────
@@ -81,14 +59,29 @@ for (const line of dataLines) {
   const vals = line.split(',')
   const get = col => (vals[colIndex[col]] ?? '').trim()
 
-  const rawName = get('역명')
-  const name = NAME_NORMALIZE[rawName] ?? rawName
-  const date = get('수송일자')
-  const direction = get('승하차구분')   // '승차' | '하차'
-  const typeRaw = get('승객유형')
-  const type = TYPE_MAP[typeRaw] ?? '일반'
+  const name      = get('역명')
+  const date      = get('날짜')         // "N월 M주차 평일/주말"
+  const direction = get('구분')          // '승차' | '하차'
+  const isWeekend = get('주말구분') === '주말'
+  const slot      = get('시간대')
 
   if (!DIRECTIONS.includes(direction)) continue
+  if (slot === '24시간대이후') continue
+
+  const cnt어린이 = parseFloat(get('이용객수_어린이')) || 0
+  const cnt청소년 = parseFloat(get('이용객수_청소년')) || 0
+  const cnt일반   = parseFloat(get('이용객수_일반'))   || 0
+  const cnt직원   = parseFloat(get('이용객수_직원'))   || 0
+  const cnt외국인 = parseFloat(get('이용객수_외국인')) || 0
+  const cnt노인   = parseFloat(get('이용객수_노인'))   || 0
+
+  const typeValues = {
+    아동:   cnt어린이,
+    청소년: cnt청소년,
+    중고생: 0,
+    일반:   cnt일반 + cnt직원 + cnt외국인,
+    우대권: cnt노인,
+  }
 
   if (!acc.has(name)) {
     const cube = {}
@@ -101,30 +94,25 @@ for (const line of dataLines) {
         }
       }
     }
-    acc.set(name, {
-      allDates: new Set(),
-      weekdayDates: new Set(),
-      weekendDates: new Set(),
-      cube,
-    })
+    acc.set(name, { weekdayDates: new Set(), weekendDates: new Set(), cube })
   }
 
   const s = acc.get(name)
-  s.allDates.add(date)
-  const wd = isWeekday(date)
-  if (wd) s.weekdayDates.add(date)
-  else s.weekendDates.add(date)
+  if (isWeekend) s.weekendDates.add(date)
+  else           s.weekdayDates.add(date)
 
-  const target = wd ? s.cube[direction][type].weekday : s.cube[direction][type].weekend
+  const bucket = isWeekend ? 'weekend' : 'weekday'
 
-  // 06시간대이전 → 0-5시 균등 분배
-  const preSlot = parseInt(vals[colIndex['06시간대이전']]) || 0
-  const perHour = Math.round(preSlot / 6)
-  for (let h = 0; h < 6; h++) target[h] += perHour
+  for (const [type, val] of Object.entries(typeValues)) {
+    const target = s.cube[direction][type][bucket]
 
-  // 06-07 ~ 23-24 → 6-23시 1:1
-  for (let h = 6; h <= 23; h++) {
-    target[h] += parseInt(vals[colIndex[CSV_TIME_COLS[h - 5]]]) || 0
+    if (slot === '06시간대이전') {
+      const perHour = val / 6
+      for (let h = 0; h < 6; h++) target[h] += perHour
+    } else {
+      const hour = slotToHour(slot)
+      if (hour !== null) target[hour] += val
+    }
   }
 }
 
@@ -136,7 +124,7 @@ for (const [name, s] of acc) {
   const numWeekends = s.weekendDates.size || 1
   const { cube } = s
 
-  // 전체 일평균 hourly (모든 방향·유형 합산 후 날짜 수로 나눔)
+  // 전체 일평균 hourly
   const hourly = new Array(24).fill(0)
   for (const d of DIRECTIONS) {
     for (const t of USER_TYPES) {
@@ -146,10 +134,8 @@ for (const [name, s] of acc) {
       }
     }
   }
-  // 평일+주말을 합산했으므로 2로 나눠 "평균 하루" 스케일로
   for (let h = 0; h < 24; h++) hourly[h] = Math.round(hourly[h] / 2)
 
-  // cnt = 필터 없는 기본 일평균 (전체 방향, 전체 유형, 전체 시간)
   const wdTotal = DIRECTIONS.flatMap(d => USER_TYPES.map(t =>
     cube[d][t].weekday.reduce((a, v) => a + v, 0)
   )).reduce((a, v) => a + v, 0)
@@ -157,19 +143,17 @@ for (const [name, s] of acc) {
     cube[d][t].weekend.reduce((a, v) => a + v, 0)
   )).reduce((a, v) => a + v, 0)
 
-  const wdAvg = wdTotal / numWeekdays
-  const weAvg = weTotal / numWeekends
+  const wdAvg   = wdTotal / numWeekdays
+  const weAvg   = weTotal / numWeekends
   const totalDays = numWeekdays + numWeekends
-  const cnt = Math.round((wdTotal + weTotal) / totalDays)
-  const maxAvg = Math.max(wdAvg, weAvg) || 1
+  const cnt     = Math.round((wdTotal + weTotal) / totalDays)
+  const maxAvg  = Math.max(wdAvg, weAvg) || 1
 
-  // 유형별 비중 (파이차트)
   const typeTotals = {}
   for (const t of USER_TYPES) {
-    const v = DIRECTIONS.reduce((a, d) =>
+    typeTotals[t] = DIRECTIONS.reduce((a, d) =>
       a + cube[d][t].weekday.reduce((s, x) => s + x, 0)
         + cube[d][t].weekend.reduce((s, x) => s + x, 0), 0)
-    typeTotals[t] = v
   }
   const typeSum = Object.values(typeTotals).reduce((a, v) => a + v, 0) || 1
   const age = {}
@@ -177,7 +161,6 @@ for (const [name, s] of acc) {
   const ageAdj = 100 - Object.values(age).reduce((a, v) => a + v, 0)
   if (ageAdj !== 0) age['일반'] += ageAdj
 
-  // cube 값을 정수로 반올림 (JSON 크기 절약)
   for (const d of DIRECTIONS) {
     for (const t of USER_TYPES) {
       cube[d][t].weekday = cube[d][t].weekday.map(Math.round)
