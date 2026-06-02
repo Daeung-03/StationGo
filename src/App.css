@@ -964,6 +964,12 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   color: #FF4757;
 }
 
+.kakao-station-label.pinned {
+  color: #3B6DFF;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 2px 8px rgba(59, 109, 255, 0.18), 0 0 0 1.5px rgba(59, 109, 255, 0.28);
+}
+
 .kakao-rank-badge {
   display: inline-flex;
   align-items: center;
