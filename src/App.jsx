@@ -327,13 +327,16 @@ function KakaoMetroMap({
       }
 
       if (station.visible) {
+        const prominent = selected || inPage
+        const labelClass = selected ? ' selected' : inPage ? ' pinned' : ''
         const label = new kakao.maps.CustomOverlay({
           clickable: false,
-          content: `<span class="${selected ? 'kakao-station-label selected' : 'kakao-station-label'}">${station.name}</span>`,
+          content: `<span class="kakao-station-label${labelClass}">${station.name}</span>`,
           map,
           position,
           xAnchor: 0.5,
           yAnchor: -0.55,
+          zIndex: prominent ? 30 : 6,
         })
         overlaysRef.current.push(label)
       }
