@@ -215,6 +215,7 @@ function KakaoMetroMap({
   ranked,
   selectedStationId,
   stationMetrics,
+  onVisibleStationsChange,
 }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -307,31 +308,43 @@ function KakaoMetroMap({
       })
       overlaysRef.current.push(circle)
 
-      // Invisible marker — click only (hover is handled by native DOM events above)
-      if (station.visible) {
-        const hitSize = Math.max(44, Math.round(radius * 2))
-        const markerImage = new kakao.maps.MarkerImage(
-          TRANSPARENT,
-          new kakao.maps.Size(hitSize, hitSize),
-          { offset: new kakao.maps.Point(hitSize / 2, hitSize / 2) },
-        )
-        const hitMarker = new kakao.maps.Marker({ image: markerImage, map, position, zIndex: 20 })
-        kakao.maps.event.addListener(hitMarker, 'click', () => onStationClick(station.id))
-        // Hover via Kakao Maps (for enter/leave) — position from last known cursor position
-        kakao.maps.event.addListener(hitMarker, 'mouseover', () => {
-          const info = stationInfoMap[station.id]
-          if (info) onTooltipShow(lastMousePos.current, info.station, info.globalRank)
-        })
-        kakao.maps.event.addListener(hitMarker, 'mouseout', onTooltipHide)
-        overlaysRef.current.push(hitMarker)
-      }
-
       if (station.visible) {
         const prominent = selected || inPage
         const labelClass = selected ? ' selected' : inPage ? ' pinned' : ''
+
+        const el = document.createElement('span')
+        el.className = `kakao-station-label${labelClass}`
+        el.innerText = station.name
+        el.style.cursor = 'pointer'
+        el.style.pointerEvents = 'auto'
+
+        el.onclick = (e) => {
+          e.stopPropagation()
+          onStationClick(station.id)
+        }
+
+        el.onmouseenter = (e) => {
+          const info = stationInfoMap[station.id]
+          if (info) {
+            onTooltipShow(
+              { clientX: e.clientX, clientY: e.clientY },
+              info.station,
+              info.globalRank
+            )
+          }
+        }
+
+        el.onmousemove = (e) => {
+          onTooltipMove({ clientX: e.clientX, clientY: e.clientY })
+        }
+
+        el.onmouseleave = () => {
+          onTooltipHide()
+        }
+
         const label = new kakao.maps.CustomOverlay({
-          clickable: false,
-          content: `<span class="kakao-station-label${labelClass}">${station.name}</span>`,
+          clickable: true,
+          content: el,
           map,
           position,
           xAnchor: 0.5,
@@ -452,6 +465,73 @@ function KakaoMetroMap({
     }
   }, [loadState, selectedStationId])
 
+  // viewport bounds 변경 및 화면 내 역 필터링을 위한 Ref 설정
+  const stationMetricsRef = useRef(stationMetrics)
+  useEffect(() => {
+    stationMetricsRef.current = stationMetrics
+  }, [stationMetrics])
+
+  const onVisibleStationsChangeRef = useRef(onVisibleStationsChange)
+  useEffect(() => {
+    onVisibleStationsChangeRef.current = onVisibleStationsChange
+  }, [onVisibleStationsChange])
+
+  // idle 이벤트 리스너 등록
+  useEffect(() => {
+    if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return undefined
+
+    const kakao = window.kakao
+    const map = mapRef.current
+
+    const updateVisibleStations = () => {
+      const bounds = map.getBounds()
+      if (!bounds) return
+
+      const visibleIds = stationMetricsRef.current
+        .filter((station) => {
+          if (!station.visible) return false
+          const latlng = new kakao.maps.LatLng(station.lat, station.lng)
+          return bounds.contain(latlng)
+        })
+        .map((station) => station.id)
+
+      if (onVisibleStationsChangeRef.current) {
+        onVisibleStationsChangeRef.current(visibleIds)
+      }
+    }
+
+    // 초기 상태 반영
+    updateVisibleStations()
+
+    kakao.maps.event.addListener(map, 'idle', updateVisibleStations)
+
+    return () => {
+      kakao.maps.event.removeListener(map, 'idle', updateVisibleStations)
+    }
+  }, [loadState])
+
+  // stationMetrics 변경 시에도 즉각 화면 내 역 계산
+  useEffect(() => {
+    if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return
+
+    const kakao = window.kakao
+    const map = mapRef.current
+    const bounds = map.getBounds()
+    if (!bounds) return
+
+    const visibleIds = stationMetrics
+      .filter((station) => {
+        if (!station.visible) return false
+        const latlng = new kakao.maps.LatLng(station.lat, station.lng)
+        return bounds.contain(latlng)
+      })
+      .map((station) => station.id)
+
+    if (onVisibleStationsChange) {
+      onVisibleStationsChange(visibleIds)
+    }
+  }, [loadState, stationMetrics, onVisibleStationsChange])
+
   return (
     <>
       <div className="internet-map kakao-map" ref={containerRef} />
@@ -482,6 +562,7 @@ function App() {
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
   const [selectedPreset, setSelectedPreset] = useState('사용자 정의')
   const [tooltip, setTooltip] = useState(null)
+  const [visibleStationIds, setVisibleStationIds] = useState(null)
 
   const filters = useMemo(() => ({
     activeLines,
@@ -497,6 +578,11 @@ function App() {
   const safeRankPage = Math.min(rankPage, pageCount - 1)
   const pageStations = useMemo(() => ranked.slice(safeRankPage * 3, safeRankPage * 3 + 3), [ranked, safeRankPage])
   const selectedStation = metricMap[selectedStationId]?.visible ? metricMap[selectedStationId] : null
+
+  const localTop3 = useMemo(() => {
+    if (!visibleStationIds) return ranked.slice(0, 3)
+    return ranked.filter((station) => visibleStationIds.includes(station.id)).slice(0, 3)
+  }, [ranked, visibleStationIds])
 
   const updateTimeRange = (index, value) => {
     setSelectedPreset('사용자 정의')
@@ -637,6 +723,8 @@ function App() {
           ranked={ranked}
           selectedStationId={selectedStationId}
           stationMetrics={stationMetrics}
+          localTop3={localTop3}
+          onVisibleStationsChange={setVisibleStationIds}
         />
         <Dashboard
           metricMap={metricMap}
@@ -865,6 +953,8 @@ function MapPanel({
   ranked,
   selectedStationId,
   stationMetrics,
+  localTop3,
+  onVisibleStationsChange,
 }) {
   const pageIds = useMemo(() => pageStations.map((station) => station.id), [pageStations])
   const rankStart = ranked.length ? rankPage * 3 + 1 : 0
@@ -874,13 +964,13 @@ function MapPanel({
     <main className="mapc internet-mapc">
       <div className="rank-bar">
         <div className="rb-card">
-          <span className="rb-label">TOP</span>
+          <span className="rb-label">LOCAL TOP</span>
           {[0, 1, 2].map((index) => (
             <div className="rb-fragment" key={index}>
               {index > 0 && <div className="rb-sep" />}
               <div className="rb-item">
                 <div className={`rdot ${RANK_DOT_CLASSES[index]}`}>{index + 1}</div>
-                <span className="rb-name">{ranked[index]?.name || '—'}</span>
+                <span className="rb-name">{localTop3[index]?.name || '—'}</span>
               </div>
             </div>
           ))}
@@ -898,6 +988,7 @@ function MapPanel({
         ranked={ranked}
         selectedStationId={selectedStationId}
         stationMetrics={stationMetrics}
+        onVisibleStationsChange={onVisibleStationsChange}
       />
 
       <div className="rank-nav">
