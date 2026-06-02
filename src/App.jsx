@@ -17,10 +17,6 @@ const LINE_COLORS = {
   '6호선': '#CD7C2F',
   '7호선': '#747F00',
   '8호선': '#E6186C',
-  '9호선': '#BDB092',
-  신분당선: '#BE1522',
-  경의중앙선: '#77C4A3',
-  공항철도: '#4A90D9',
 }
 
 const AGE_COLORS = {
@@ -37,7 +33,7 @@ const STATIONS = buildStationsFromInfo()
 const PASSENGER_RANGE_MAX = Math.ceil(Math.max(...STATIONS.map(s => s.cnt), 10000) / 10000) * 10000
 
 
-const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선', '9호선']
+const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선']
 const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권']
 const AGE_ORDER = ['아동', '일반', '중고생', '청소년', '우대권']
 const RANK_DOT_CLASSES = ['rd1', 'rd2', 'rd3']
@@ -1472,60 +1468,31 @@ function AgePie({ station }) {
 }
 
 function SimilarStations({ selectStationByName, station }) {
-  const items = useMemo(() => {
-    if (!station || !station.hourly) return []
+  const names = station?.simPat ?? []
 
-    // Helper for Cosine Similarity
-    const getCosineSimilarity = (a, b) => {
-      let dotProduct = 0
-      let normA = 0
-      let normB = 0
-      for (let i = 0; i < a.length; i++) {
-        dotProduct += a[i] * b[i]
-        normA += a[i] * a[i]
-        normB += b[i] * b[i]
-      }
-      if (normA === 0 || normB === 0) return 0
-      return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
-    }
-
-    // Calculate similarity with all other stations in STATIONS
-    const list = STATIONS
-      .filter((s) => s.id !== station.id)
-      .map((s) => {
-        const sim = getCosineSimilarity(station.hourly, s.hourly)
-        return {
-          id: s.id,
-          name: s.name,
-          lines: s.lines.join('·'),
-          similarity: sim,
-          pct: Math.round(sim * 100)
-        }
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 3)
-
-    return list.map((item, index) => ({
-      name: item.name,
-      lines: item.lines,
-      rank: index + 1,
-      onClick: () => selectStationByName(item.name),
-      score: `${item.pct}%`,
-    }))
-  }, [station, selectStationByName])
+  if (!names.length) {
+    return (
+      <div className="simlist">
+        <span style={{ color: '#A0AABF', fontSize: '12px' }}>유사 역 데이터 없음</span>
+      </div>
+    )
+  }
 
   return (
     <div className="simlist">
-      {items.map((item) => (
-        <button className="simitem" key={`${item.name}-${item.score}`} onClick={item.onClick}>
-          <span className="sirank">{item.rank}</span>
-          <span className="siinfo">
-            <span className="siname">{item.name}</span>
-            <span className="siline">{item.lines}</span>
-          </span>
-          <span className="siscore">{item.score}</span>
-        </button>
-      ))}
+      {names.map((name, index) => {
+        const s = STATIONS.find((st) => st.name === name)
+        const lines = s ? s.lines.join('·') : ''
+        return (
+          <button className="simitem" key={name} onClick={() => selectStationByName(name)}>
+            <span className="sirank">{index + 1}</span>
+            <span className="siinfo">
+              <span className="siname">{name}</span>
+              {lines && <span className="siline">{lines}</span>}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }
