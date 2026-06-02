@@ -55,6 +55,19 @@ function formatPassenger(value) {
   return `${value.toLocaleString()}명`
 }
 
+function formatMetricValue(value, mode) {
+  if (mode === 'stability' || mode === 'concentration') {
+    return `${(value * 100).toFixed(2)}%`
+  }
+  return formatPassenger(value)
+}
+
+function getMetricLabel(mode) {
+  if (mode === 'stability') return '피크 안정도'
+  if (mode === 'concentration') return '피크 집중도'
+  return '선택 조건 이용자 수'
+}
+
 function getDistanceKm(a, b) {
   const radius = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
@@ -151,20 +164,34 @@ function getHourlyData(station, filters) {
   return station.hourly.map((val) => Math.round(val * dayFactor * ageFactor * directionFactor))
 }
 
-function getStationMetrics(filters) {
+function getStationMetrics(filters, activeMetricMode) {
   return STATIONS.map((station) => {
-    const count = getFilteredCount(station, filters)
-    const lineMatch = filters.activeLines.size > 0 && station.lines.some((line) => filters.activeLines.has(line))
-    const transferMatch = filters.transfer === '전체' || (filters.transfer === '환승역만' ? station.tf : !station.tf)
-    const passengerMatch = count >= filters.passengerRange[0] && count <= filters.passengerRange[1]
-    const visible = lineMatch && transferMatch && passengerMatch && count > 0
+    let count = 0
+    let visible = false
+
+    if (activeMetricMode) {
+      const pm = station.peakMetrics?.[filters.weekday]
+      if (pm) {
+        count = activeMetricMode === 'stability' ? pm.stability : pm.concentration
+        visible = true
+      } else {
+        count = 0
+        visible = false
+      }
+    } else {
+      count = getFilteredCount(station, filters)
+      const lineMatch = filters.activeLines.size > 0 && station.lines.some((line) => filters.activeLines.has(line))
+      const transferMatch = filters.transfer === '전체' || (filters.transfer === '환승역만' ? station.tf : !station.tf)
+      const passengerMatch = count >= filters.passengerRange[0] && count <= filters.passengerRange[1]
+      visible = lineMatch && transferMatch && passengerMatch && count > 0
+    }
 
     return { ...station, count, visible }
   })
 }
 
-function getRankedStations(filters) {
-  const stationMetrics = getStationMetrics(filters)
+function getRankedStations(filters, activeMetricMode) {
+  const stationMetrics = getStationMetrics(filters, activeMetricMode)
   const ranked = stationMetrics.filter((station) => station.visible).sort((a, b) => b.count - a.count)
   const metricMap = stationMetrics.reduce((map, station) => ({ ...map, [station.id]: station }), {})
 
@@ -563,6 +590,12 @@ function App() {
   const [selectedPreset, setSelectedPreset] = useState('사용자 정의')
   const [tooltip, setTooltip] = useState(null)
   const [visibleStationIds, setVisibleStationIds] = useState(null)
+  const [activeMetricMode, setActiveMetricMode] = useState(null)
+
+  const handleMetricModeToggle = (mode) => {
+    setActiveMetricMode((current) => (current === mode ? null : mode))
+    setRankPage(0)
+  }
 
   const filters = useMemo(() => ({
     activeLines,
@@ -573,7 +606,7 @@ function App() {
     transfer,
     weekday,
   }), [activeLines, activeTypes, boarding, passengerRange, timeRange, transfer, weekday])
-  const { metricMap, ranked, stationMetrics } = useMemo(() => getRankedStations(filters), [filters])
+  const { metricMap, ranked, stationMetrics } = useMemo(() => getRankedStations(filters, activeMetricMode), [filters, activeMetricMode])
   const pageCount = Math.max(1, Math.ceil(ranked.length / 3))
   const safeRankPage = Math.min(rankPage, pageCount - 1)
   const pageStations = useMemo(() => ranked.slice(safeRankPage * 3, safeRankPage * 3 + 3), [ranked, safeRankPage])
@@ -709,6 +742,8 @@ function App() {
           timeRange={timeRange}
           transfer={transfer}
           weekday={weekday}
+          activeMetricMode={activeMetricMode}
+          onMetricModeToggle={handleMetricModeToggle}
         />
         <MapPanel
           boarding={boarding}
@@ -734,9 +769,10 @@ function App() {
           selectedStation={selectedStation}
           selectStationByName={selectStationByName}
           stationMetrics={stationMetrics}
+          activeMetricMode={activeMetricMode}
         />
       </div>
-      <Tooltip ranked={ranked} selectedStation={selectedStation} tooltip={tooltip} />
+      <Tooltip ranked={ranked} selectedStation={selectedStation} tooltip={tooltip} activeMetricMode={activeMetricMode} />
     </div>
   )
 }
@@ -777,6 +813,8 @@ function Sidebar({
   timeRange,
   transfer,
   weekday,
+  activeMetricMode,
+  onMetricModeToggle,
 }) {
   const [ddOpen, setDdOpen] = useState(false)
   const ddRef = useRef(null)
@@ -806,10 +844,10 @@ function Sidebar({
       </div>
 
       <div className="sb-scroll">
-        <div className="fsec">
+        <div className={`fsec ${activeMetricMode ? 'disabled' : ''}`}>
           <div className="flabel">컬럼 선택 세트</div>
           <div className="preset-dd" ref={ddRef}>
-            <button className={`preset-dd-trigger ${ddOpen ? 'open' : ''}`} onClick={() => setDdOpen((v) => !v)}>
+            <button className={`preset-dd-trigger ${ddOpen ? 'open' : ''}`} onClick={() => setDdOpen((v) => !v)} disabled={!!activeMetricMode}>
               <span className="picon" style={{ background: currentPreset.bg }}>{currentPreset.icon}</span>
               <span className="preset-dd-name">{currentPreset.name}</span>
               <span className={`preset-arrow ${ddOpen ? 'open' : ''}`}>▾</span>
@@ -821,6 +859,7 @@ function Sidebar({
                     className={`preset-dd-item ${selectedPreset === preset.name ? 'on' : ''}`}
                     key={preset.name}
                     onClick={() => { onPresetChange(preset.name); setDdOpen(false) }}
+                    disabled={!!activeMetricMode}
                   >
                     <span className="picon" style={{ background: preset.bg }}>{preset.icon}</span>
                     <span>
@@ -834,7 +873,7 @@ function Sidebar({
           </div>
         </div>
 
-        <div className="fsec">
+        <div className={`fsec ${activeMetricMode ? 'disabled' : ''}`}>
           <div className="flabel">
             시간대 <span className="fbadge">{timeLabel}</span>
           </div>
@@ -849,26 +888,27 @@ function Sidebar({
             onChange={onTimeRangeChange}
             step={1}
             values={timeRange}
+            disabled={!!activeMetricMode}
           />
         </div>
 
         <ChoiceSection label="요일" onChange={onWeekdayChange} options={['전체', '평일', '주말']} value={weekday} />
 
-        <div className="fsec">
+        <div className={`fsec ${activeMetricMode ? 'disabled' : ''}`}>
           <div className="flabel">이용자 유형</div>
           <div className="pgroup">
             {USER_TYPES.map((type) => (
-              <button className={`pill ${activeTypes.has(type) ? 'on' : ''}`} key={type} onClick={() => onTypeToggle(type)}>
+              <button className={`pill ${activeTypes.has(type) ? 'on' : ''}`} key={type} onClick={() => onTypeToggle(type)} disabled={!!activeMetricMode}>
                 {type}
               </button>
             ))}
           </div>
         </div>
 
-        <ChoiceSection label="승 / 하차" onChange={onBoardingChange} options={['전체', '승차', '하차']} value={boarding} />
-        <ChoiceSection label="환승역" onChange={onTransferChange} options={['전체', '환승역만', '비환승']} value={transfer} />
+        <ChoiceSection label="승 / 하차" onChange={onBoardingChange} options={['전체', '승차', '하차']} value={boarding} disabled={!!activeMetricMode} />
+        <ChoiceSection label="환승역" onChange={onTransferChange} options={['전체', '환승역만', '비환승']} value={transfer} disabled={!!activeMetricMode} />
 
-        <div className="fsec">
+        <div className={`fsec ${activeMetricMode ? 'disabled' : ''}`}>
           <div className="flabel">호선</div>
           <div className="lgrid">
             {LINES.map((line) => {
@@ -880,6 +920,7 @@ function Sidebar({
                   key={line}
                   onClick={() => onLineToggle(line)}
                   style={active ? { color, borderColor: color, background: `${color}12` } : undefined}
+                  disabled={!!activeMetricMode}
                 >
                   <span className="ld" style={{ background: active ? color : '#C4CAD9' }} />
                   {line}
@@ -889,18 +930,44 @@ function Sidebar({
           </div>
         </div>
 
-        <div className="fsec">
+        <div className={`fsec ${activeMetricMode ? 'disabled' : ''}`}>
           <div className="flabel">승객 수 범위</div>
           <div className="trow">
             <div className="tchip">{formatPassenger(passengerRange[0])}</div>
             <span className="tsep">~</span>
             <div className="tchip">{formatPassenger(passengerRange[1])}</div>
           </div>
-          <DualRange max={maxPassenger} min={0} onChange={onPassengerRangeChange} step={Math.round(maxPassenger / 100)} values={passengerRange} />
+          <DualRange max={maxPassenger} min={0} onChange={onPassengerRangeChange} step={Math.round(maxPassenger / 100)} values={passengerRange} disabled={!!activeMetricMode} />
           <div className="rlabels">
             <span className="rlabel">0</span>
             <span className="rlabel">{formatPassenger(Math.round(maxPassenger / 2))}</span>
             <span className="rlabel">{formatPassenger(maxPassenger)}</span>
+          </div>
+        </div>
+
+        <div className="fsec peak-mode-sec">
+          <div className="flabel">피크 분석 모드</div>
+          <div className="peak-mode-grid">
+            <button
+              className={`peak-mode-box ${activeMetricMode === 'stability' ? 'on' : ''}`}
+              onClick={() => onMetricModeToggle('stability')}
+            >
+              <div className="pmb-icon">📊</div>
+              <div className="pmb-text">
+                <span className="pmb-title">피크 안정도</span>
+                <span className="pmb-desc">시간대별 균등 분포도</span>
+              </div>
+            </button>
+            <button
+              className={`peak-mode-box ${activeMetricMode === 'concentration' ? 'on' : ''}`}
+              onClick={() => onMetricModeToggle('concentration')}
+            >
+              <div className="pmb-icon">⚡</div>
+              <div className="pmb-text">
+                <span className="pmb-title">피크 집중도</span>
+                <span className="pmb-desc">특정 시간 혼잡 쏠림</span>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -909,7 +976,7 @@ function Sidebar({
 }
 
 
-function DualRange({ max, min, onChange, step, values }) {
+function DualRange({ max, min, onChange, step, values, disabled }) {
   const [start, end] = values
   const left = ((start - min) / (max - min)) * 100
   const width = ((end - start) / (max - min)) * 100
@@ -918,19 +985,19 @@ function DualRange({ max, min, onChange, step, values }) {
     <div className="swrap">
       <div className="tbg" />
       <div className="tfl" style={{ left: `${left}%`, width: `${width}%` }} />
-      <input className="dr" max={max} min={min} onChange={(event) => onChange(0, event.target.value)} step={step} type="range" value={start} />
-      <input className="dr" max={max} min={min} onChange={(event) => onChange(1, event.target.value)} step={step} type="range" value={end} />
+      <input className="dr" max={max} min={min} onChange={(event) => onChange(0, event.target.value)} step={step} type="range" value={start} disabled={disabled} />
+      <input className="dr" max={max} min={min} onChange={(event) => onChange(1, event.target.value)} step={step} type="range" value={end} disabled={disabled} />
     </div>
   )
 }
 
-function ChoiceSection({ label, onChange, options, value }) {
+function ChoiceSection({ label, onChange, options, value, disabled }) {
   return (
-    <div className="fsec">
+    <div className={`fsec ${disabled ? 'disabled' : ''}`}>
       <div className="flabel">{label}</div>
       <div className="btnrow">
         {options.map((option) => (
-          <button className={`tbtn ${value === option ? 'on' : ''}`} key={option} onClick={() => onChange(option)}>
+          <button className={`tbtn ${value === option ? 'on' : ''}`} key={option} onClick={() => onChange(option)} disabled={disabled}>
             {option}
           </button>
         ))}
@@ -1011,7 +1078,7 @@ function MapPanel({
   )
 }
 
-function Dashboard({ onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics }) {
+function Dashboard({ onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics, activeMetricMode }) {
   const [hoveredHour, setHoveredHour] = useState(null)
   const [hoveredVal, setHoveredVal] = useState(null)
 
@@ -1019,8 +1086,20 @@ function Dashboard({ onClose, onStationClick, ranked, selectedStation, selectSta
 
   const rank = ranked.findIndex((item) => item.id === selectedStation.id) + 1
   const visibleMetrics = stationMetrics.filter((station) => station.visible)
-  const average = Math.round(visibleMetrics.reduce((sum, station) => sum + station.count, 0) / (visibleMetrics.length || 1))
-  const diff = average ? ((selectedStation.count - average) / average * 100).toFixed(0) : 0
+  const isPeakMode = activeMetricMode === 'stability' || activeMetricMode === 'concentration'
+
+  const average = isPeakMode
+    ? visibleMetrics.reduce((sum, station) => sum + station.count, 0) / (visibleMetrics.length || 1)
+    : Math.round(visibleMetrics.reduce((sum, station) => sum + station.count, 0) / (visibleMetrics.length || 1))
+
+  let diffText = ''
+  if (isPeakMode) {
+    const diffPct = (selectedStation.count - average) * 100
+    diffText = `평균 대비 ${diffPct > 0 ? '+' : ''}${diffPct.toFixed(2)}%p`
+  } else {
+    const diffPct = average ? ((selectedStation.count - average) / average * 100).toFixed(0) : 0
+    diffText = `평균 대비 ${selectedStation.count > average ? '+' : ''}${diffPct}%`
+  }
 
   const handleHourHover = (hour, val) => {
     setHoveredHour(hour)
@@ -1045,17 +1124,27 @@ function Dashboard({ onClose, onStationClick, ranked, selectedStation, selectSta
         </div>
 
         <div className="dsec">
-          <div className="dst">선택 조건 이용자 수</div>
+          <div className="dst">{getMetricLabel(activeMetricMode)}</div>
           <div className="mhl">
             <div className="mhl-left">
-              <div className="mhlabel">조건 반영 합산 방문객</div>
+              <div className="mhlabel">
+                {activeMetricMode ? '역별 대표 지표값' : '조건 반영 합산 방문객'}
+              </div>
               <div className="mhval">
-                {selectedStation.count.toLocaleString()}
-                <span>명</span>
+                {activeMetricMode ? (
+                  <>
+                    {(selectedStation.count * 100).toFixed(2)}
+                    <span>%</span>
+                  </>
+                ) : (
+                  <>
+                    {selectedStation.count.toLocaleString()}
+                    <span>명</span>
+                  </>
+                )}
               </div>
               <div className="mhsub">
-                조건 내 {rank}위 · 평균 대비 {selectedStation.count > average ? '+' : ''}
-                {diff}%
+                조건 내 {rank}위 · {diffText}
               </div>
             </div>
             <StationSummary station={selectedStation} />
@@ -1530,7 +1619,7 @@ function SimilarStations({ selectStationByName, station }) {
   )
 }
 
-function Tooltip({ ranked, selectedStation, tooltip }) {
+function Tooltip({ ranked, selectedStation, tooltip, activeMetricMode }) {
   if (!tooltip) return <div className="tt" />
 
   const { station, rank, x, y } = tooltip
@@ -1541,6 +1630,18 @@ function Tooltip({ ranked, selectedStation, tooltip }) {
       ? getDistanceKm(station, selectedStation).toFixed(1)
       : null
 
+  const isPeakMode = activeMetricMode === 'stability' || activeMetricMode === 'concentration'
+
+  let diffText = ''
+  if (diff !== null) {
+    if (isPeakMode) {
+      const diffPct = diff * 100
+      diffText = `${diffPct > 0 ? '+' : ''}${diffPct.toFixed(2)}%p`
+    } else {
+      diffText = `${diff > 0 ? '+' : ''}${diff.toLocaleString()}명`
+    }
+  }
+
   return (
     <div className="tt show" style={{ left: x + 14, top: y - 10 }}>
       <div className="ttn">
@@ -1548,8 +1649,8 @@ function Tooltip({ ranked, selectedStation, tooltip }) {
         <span className="ttlb" style={lineTagStyle(firstLine)}>{firstLine}</span>
       </div>
       <div className="ttr">
-        <span className="ttk">이용자 수</span>
-        <span className="ttv">{station.count.toLocaleString()}명</span>
+        <span className="ttk">{getMetricLabel(activeMetricMode)}</span>
+        <span className="ttv">{formatMetricValue(station.count, activeMetricMode)}</span>
       </div>
       <div className="ttr">
         <span className="ttk">현재 순위</span>
@@ -1567,8 +1668,7 @@ function Tooltip({ ranked, selectedStation, tooltip }) {
           <div className="ttr">
             <span className="ttk">선택역 대비</span>
             <span className={diff > 0 ? 'ttpos' : 'ttneg'}>
-              {diff > 0 ? '+' : ''}
-              {diff.toLocaleString()}명
+              {diffText}
             </span>
           </div>
         </>
