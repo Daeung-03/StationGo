@@ -292,8 +292,8 @@ function KakaoMetroMap({
       // Visual circle
       const circle = new kakao.maps.Circle({
         center: position,
-        fillColor: selected ? '#FF4757' : inPage ? rankFill : station.visible ? color : '#CBD5E1',
-        fillOpacity: station.visible ? (selected ? 0.95 : inPage ? 0.88 : 0.85) : 0.18,
+        fillColor: inPage ? rankFill : selected ? '#FF4757' : '#CBD5E1',
+        fillOpacity: station.visible ? (inPage ? 0.88 : selected ? 0.95 : 0.85) : 0.18,
         map,
         radius: inPage ? inPageRadius : circleRadius,
         strokeColor: inPage ? rankFill : '#ffffff',
