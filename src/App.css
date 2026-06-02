@@ -970,6 +970,10 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   box-shadow: 0 2px 8px rgba(59, 109, 255, 0.18), 0 0 0 1.5px rgba(59, 109, 255, 0.28);
 }
 
+.map-zoomed-out .kakao-station-label:not(.selected):not(.pinned) {
+  display: none;
+}
+
 .kakao-rank-badge {
   display: inline-flex;
   align-items: center;
