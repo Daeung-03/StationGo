@@ -172,7 +172,10 @@ function getStationMetrics(filters, activeMetricMode) {
       const pm = station.peakMetrics?.[filters.weekday]
       if (pm) {
         count = activeMetricMode === 'stability' ? pm.stability : pm.concentration
-        visible = true
+        // 호선·승객 수 필터는 피크 모드에서도 역 제외 기준으로 적용
+        const lineMatch = filters.activeLines.size > 0 && station.lines.some((line) => filters.activeLines.has(line))
+        const passengerMatch = station.cnt >= filters.passengerRange[0] && station.cnt <= filters.passengerRange[1]
+        visible = lineMatch && passengerMatch
       }
     } else {
       count = getFilteredCount(station, filters)
@@ -926,7 +929,7 @@ function Sidebar({
         <ChoiceSection label="승 / 하차" onChange={onBoardingChange} options={['전체', '승차', '하차']} value={boarding} disabled={!!activeMetricMode} />
         <ChoiceSection label="환승역" onChange={onTransferChange} options={['전체', '환승역만', '비환승']} value={transfer} disabled={!!activeMetricMode} />
 
-        <div className={`fsec ${activeMetricMode ? 'disabled' : ''}`}>
+        <div className="fsec">
           <div className="flabel">호선</div>
           <div className="lgrid">
             {LINES.map((line) => {
@@ -938,7 +941,6 @@ function Sidebar({
                   key={line}
                   onClick={() => onLineToggle(line)}
                   style={active ? { color, borderColor: color, background: `${color}12` } : undefined}
-                  disabled={!!activeMetricMode}
                 >
                   <span className="ld" style={{ background: active ? color : '#C4CAD9' }} />
                   {line}
@@ -948,14 +950,14 @@ function Sidebar({
           </div>
         </div>
 
-        <div className={`fsec ${activeMetricMode ? 'disabled' : ''}`}>
+        <div className="fsec">
           <div className="flabel">승객 수 범위</div>
           <div className="trow">
             <div className="tchip">{formatPassenger(passengerRange[0])}</div>
             <span className="tsep">~</span>
             <div className="tchip">{formatPassenger(passengerRange[1])}</div>
           </div>
-          <DualRange max={maxPassenger} min={0} onChange={onPassengerRangeChange} step={Math.round(maxPassenger / 100)} values={passengerRange} disabled={!!activeMetricMode} />
+          <DualRange max={maxPassenger} min={0} onChange={onPassengerRangeChange} step={Math.round(maxPassenger / 100)} values={passengerRange} />
           <div className="rlabels">
             <span className="rlabel">0</span>
             <span className="rlabel">{formatPassenger(Math.round(maxPassenger / 2))}</span>
