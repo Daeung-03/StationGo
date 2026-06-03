@@ -102,11 +102,13 @@ function getFilteredCount(station, filters) {
       }
     }
 
-    if (weekday === '평일') return Math.round(wdSum / (numWeekdays || 1))
-    if (weekday === '주말') return Math.round(weSum / (numWeekends || 1))
+    // numWeekdays/numWeekends는 "주차 단위" 개수 (평일 1묶음=5일, 주말 1묶음=2일)
+    const wdDays = numWeekdays * 5
+    const weDays = numWeekends * 2
+    if (weekday === '평일') return Math.round(wdSum / (wdDays || 1))
+    if (weekday === '주말') return Math.round(weSum / (weDays || 1))
     // '전체': 날짜 수 가중 평균 → 실제 일평균
-    const totalDays = (numWeekdays + numWeekends) || 1
-    return Math.round((wdSum + weSum) / totalDays)
+    return Math.round((wdSum + weSum) / ((wdDays + weDays) || 1))
   }
 
   // ── fallback: cube 없는 역은 기존 근사 계산 ───────────────────────────
@@ -129,7 +131,8 @@ function getHourlyData(station, filters) {
     const { weekday, activeTypes, boarding } = filters
     const { numWeekdays, numWeekends, data } = cube
     const directions = boarding === '전체' ? ['승차', '하차'] : [boarding]
-    const totalDays = (numWeekdays + numWeekends) || 1
+    const wdDays = numWeekdays * 5
+    const weDays = numWeekends * 2
 
     for (let h = 0; h < 24; h++) {
       let wdSum = 0, weSum = 0
@@ -143,11 +146,11 @@ function getHourlyData(station, filters) {
         }
       }
       if (weekday === '평일') {
-        hourlyData[h] = Math.round(wdSum / (numWeekdays || 1))
+        hourlyData[h] = Math.round(wdSum / (wdDays || 1))
       } else if (weekday === '주말') {
-        hourlyData[h] = Math.round(weSum / (numWeekends || 1))
+        hourlyData[h] = Math.round(weSum / (weDays || 1))
       } else {
-        hourlyData[h] = Math.round((wdSum + weSum) / totalDays)
+        hourlyData[h] = Math.round((wdSum + weSum) / ((wdDays + weDays) || 1))
       }
     }
     return hourlyData
@@ -1121,6 +1124,9 @@ function Dashboard({ activeMetricMode, onClose, onStationClick, ranked, selected
     setHoveredVal(val)
   }
 
+  // 피크 모드에서도 기존 이용자 정보는 station.cnt(기본 일평균)로 표시
+  const passengerCount = isPeakMode ? selectedStation.cnt : selectedStation.count
+
   return (
     <aside className="dash open">
       <div className="dbody">
@@ -1138,29 +1144,38 @@ function Dashboard({ activeMetricMode, onClose, onStationClick, ranked, selected
           <button className="dclose" onClick={onClose}>✕</button>
         </div>
 
+        {isPeakMode && (
+          <div className="dsec peak-stat-sec">
+            <div className="dst">{getMetricLabel(activeMetricMode)}</div>
+            <div className="mhl">
+              <div className="mhl-left">
+                <div className="mhlabel">역별 대표 지표값</div>
+                <div className="mhval">
+                  {(selectedStation.count * 100).toFixed(2)}
+                  <span>%</span>
+                </div>
+                <div className="mhsub">피크 순위 {rank}위 · {diffText}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="dsec">
-          <div className="dst">{getMetricLabel(activeMetricMode)}</div>
+          <div className="dst">선택 조건 이용자 수</div>
           <div className="mhl">
             <div className="mhl-left">
               <div className="mhlabel">
-                {activeMetricMode ? '역별 대표 지표값' : '조건 반영 합산 방문객'}
+                {isPeakMode ? '기본 일평균 이용자' : '조건 반영 합산 방문객'}
               </div>
               <div className="mhval">
-                {isPeakMode ? (
-                  <>
-                    {(selectedStation.count * 100).toFixed(2)}
-                    <span>%</span>
-                  </>
-                ) : (
-                  <>
-                    {selectedStation.count.toLocaleString()}
-                    <span>명</span>
-                  </>
-                )}
+                {passengerCount.toLocaleString()}
+                <span>명</span>
               </div>
-              <div className="mhsub">
-                조건 내 {rank}위 · {diffText}
-              </div>
+              {!isPeakMode && (
+                <div className="mhsub">
+                  조건 내 {rank}위 · {diffText}
+                </div>
+              )}
             </div>
             <StationSummary station={selectedStation} />
           </div>
@@ -1181,7 +1196,7 @@ function Dashboard({ activeMetricMode, onClose, onStationClick, ranked, selected
         <div className="dsec">
           <div className="dst">승객 유형별 분포</div>
           <div className="chwrap">
-            <AgePie station={selectedStation} />
+            <AgePie count={passengerCount} station={selectedStation} />
             <div className="piegend">
               {AGE_ORDER.map((age) => (
                 <div className="legend-block" key={age}>
@@ -1508,8 +1523,8 @@ function StationSummary({ station }) {
         }
       }
     }
-    wdAvg = Math.round(wdSum / (numWeekdays || 1))
-    weAvg = Math.round(weSum / (numWeekends || 1))
+    wdAvg = Math.round(wdSum / (numWeekdays * 5 || 1))
+    weAvg = Math.round(weSum / (numWeekends * 2 || 1))
   } else {
     wdAvg = Math.round(station.cnt * station.wdr)
     weAvg = Math.round(station.cnt * station.wkr)
@@ -1535,7 +1550,7 @@ function StationSummary({ station }) {
   )
 }
 
-function AgePie({ station }) {
+function AgePie({ count, station }) {
   const circumference = 2 * Math.PI * 38
   const segments = AGE_ORDER.reduce((result, age) => {
     const percent = station.age[age] || 0
@@ -1569,7 +1584,7 @@ function AgePie({ station }) {
         총계
       </text>
       <text fill="#1A202C" fontFamily="Noto Sans KR,sans-serif" fontSize="11" fontWeight="800" textAnchor="middle" x="46" y="55">
-        {(station.count / 1000).toFixed(1)}K
+        {((count ?? station.count) / 1000).toFixed(1)}K
       </text>
     </svg>
   )

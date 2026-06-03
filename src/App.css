@@ -1909,3 +1909,10 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   pointer-events: none;
   filter: grayscale(80%);
 }
+
+.peak-stat-sec {
+  background: #eef2ff;
+  border-radius: 8px;
+  border-left: 3px solid #3b6dff;
+  margin-bottom: 4px;
+}
