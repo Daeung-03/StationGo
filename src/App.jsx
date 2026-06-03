@@ -25,6 +25,7 @@ const AGE_COLORS = {
   중고생: '#10B981',
   일반: '#3B82F6',
   우대권: '#A78BFA',
+  외국인: '#EC4899',
 }
 
 // station_info.csv + passenger_summary.json 기반 역 목록
@@ -34,8 +35,8 @@ const PASSENGER_RANGE_MAX = Math.ceil(Math.max(...STATIONS.map(s => s.cnt), 1000
 
 
 const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선']
-const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권']
-const AGE_ORDER = ['아동', '일반', '중고생', '청소년', '우대권']
+const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권', '외국인']
+const AGE_ORDER = ['아동', '일반', '외국인', '중고생', '청소년', '우대권']
 const RANK_DOT_CLASSES = ['rd1', 'rd2', 'rd3']
 
 
