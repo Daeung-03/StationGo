@@ -1028,6 +1028,84 @@ function ChoiceSection({ label, onChange, options, value, disabled }) {
 }
 
 
+function StationSearchBox({ stationMetrics, onStationClick }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const boxRef = useRef(null)
+  const inputRef = useRef(null)
+
+  const trimmed = query.trim()
+  const results = trimmed
+    ? STATIONS.filter((s) => s.name.includes(trimmed)).slice(0, 8)
+    : []
+  const noResults = trimmed.length > 0 && results.length === 0
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const handleSelect = (station) => {
+    onStationClick(station.id)
+    setQuery('')
+    setOpen(false)
+  }
+
+  return (
+    <div className="ssb-wrap" ref={boxRef}>
+      <div className="ssb-input-row">
+        <span className="ssb-icon">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <circle cx="5" cy="5" r="3.5" stroke="#A0AABF" strokeWidth="1.4" />
+            <line x1="7.8" y1="7.8" x2="10.5" y2="10.5" stroke="#A0AABF" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+        </span>
+        <input
+          ref={inputRef}
+          className="ssb-input"
+          placeholder="역 검색"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+        />
+        {query && (
+          <button className="ssb-clear" onClick={() => { setQuery(''); setOpen(false); inputRef.current?.focus() }}>✕</button>
+        )}
+      </div>
+      {open && (results.length > 0 || noResults) && (
+        <div className="ssb-dropdown">
+          {noResults ? (
+            <div className="ssb-no-result">제공되지 않는 역 또는 없는 역입니다</div>
+          ) : (
+            results.map((station) => {
+              const metric = stationMetrics.find((m) => m.id === station.id)
+              const isVisible = metric?.visible
+              return (
+                <button
+                  key={station.id}
+                  className={`ssb-item${isVisible ? '' : ' ssb-item-dim'}`}
+                  onClick={() => handleSelect(station)}
+                >
+                  <span className="ssb-sname">{station.name}</span>
+                  <div className="ssb-lines">
+                    {station.lines.map((line) => (
+                      <span key={line} className="ssb-ltag" style={lineTagStyle(line)}>{line}</span>
+                    ))}
+                  </div>
+                </button>
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MapPanel({
   boarding,
   onRankNav,
@@ -1063,6 +1141,7 @@ function MapPanel({
             </div>
           ))}
         </div>
+        <StationSearchBox stationMetrics={stationMetrics} onStationClick={onStationClick} />
       </div>
 
       <KakaoMetroMap
