@@ -1374,6 +1374,38 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   pointer-events: none;
 }
 
+.rn-arr-end {
+  opacity: .3;
+  cursor: default;
+}
+
+.rn-arr-end:hover {
+  background: #fff;
+}
+
+@keyframes rn-block-fade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  12%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  72%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-2px); }
+}
+
+.rn-block-toast {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(26, 32, 44, 0.88);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: rn-block-fade 1s ease forwards;
+}
+
 .rn-main {
   font-size: 11px;
   font-weight: 800;
