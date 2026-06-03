@@ -417,7 +417,7 @@ function KakaoMetroMap({
     selectedStationIdRef.current = selectedStationId
   }, [selectedStationId])
 
-  // Fit map bounds only when pageIds (filters or rank bar page) changes
+  // Fit map bounds when pageIds (filters or rank bar page) changes, including selected station
   useEffect(() => {
     if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps || !pageIds || pageIds.length === 0) return
 
@@ -425,15 +425,16 @@ function KakaoMetroMap({
     const bounds = new kakao.maps.LatLngBounds()
     let hasPoints = false
 
+    const selectedId = selectedStationIdRef.current
     stationMetrics.forEach((station) => {
-      if (pageIds.includes(station.id)) {
+      if (pageIds.includes(station.id) || station.id === selectedId) {
         bounds.extend(new kakao.maps.LatLng(station.lat, station.lng))
         hasPoints = true
       }
     })
 
     if (hasPoints) {
-      const isDashOpen = !!selectedStationIdRef.current
+      const isDashOpen = !!selectedId
       const paddingRight = isDashOpen ? 120 : 50
       map.setBounds(bounds, 50, paddingRight, 50, 50)
       if (map.getLevel() < 5) {
