@@ -43,6 +43,14 @@ headers.forEach((h, i) => { colIndex[h] = i })
 const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권']
 const DIRECTIONS = ['승차', '하차']
 
+// ── 동일 역 이름 통합 (CSV 역명 → station_info 기준 정규 역명) ─────────────
+// 이름·역번호는 다르지만 물리적으로 같은 역을 하나로 합산한다.
+const STATION_ALIASES = {
+  '당고개':           '불암산',
+  '삼각지(전쟁기념관)': '삼각지',
+  '총신대입구(이수)':   '이수',
+}
+
 // "06-07시간대" → 6, "23-24시간대" → 23
 // "06시간대이전" / "24시간대이후" → null (호출부에서 별도 처리)
 function slotToHour(slot) {
@@ -59,14 +67,15 @@ for (const line of dataLines) {
   const vals = line.split(',')
   const get = col => (vals[colIndex[col]] ?? '').trim()
 
-  const name      = get('역명')
+  const rawName    = get('역명')
+  const name       = STATION_ALIASES[rawName] ?? rawName
   const date      = get('날짜')         // "N월 M주차 평일/주말"
   const direction = get('구분')          // '승차' | '하차'
   const isWeekend = get('주말구분') === '주말'
   const slot      = get('시간대')
 
   if (!DIRECTIONS.includes(direction)) continue
-  if (slot === '24시간대이후') continue
+  if (slot === '24시간대이후' || slot === '06시간대이전') continue
 
   const cnt어린이 = parseFloat(get('이용객수_어린이')) || 0
   const cnt청소년 = parseFloat(get('이용객수_청소년')) || 0
@@ -106,13 +115,8 @@ for (const line of dataLines) {
   for (const [type, val] of Object.entries(typeValues)) {
     const target = s.cube[direction][type][bucket]
 
-    if (slot === '06시간대이전') {
-      const perHour = val / 6
-      for (let h = 0; h < 6; h++) target[h] += perHour
-    } else {
-      const hour = slotToHour(slot)
-      if (hour !== null) target[hour] += val
-    }
+    const hour = slotToHour(slot)
+    if (hour !== null) target[hour] += val
   }
 }
 
@@ -122,6 +126,9 @@ const summary = {}
 for (const [name, s] of acc) {
   const numWeekdays = s.weekdayDates.size || 1
   const numWeekends = s.weekendDates.size || 1
+  // 주차 단위 → 실제 일수 변환 (평일 주차 × 5, 주말 주차 × 2)
+  const wdDays = numWeekdays * 5
+  const weDays = numWeekends * 2
   const { cube } = s
 
   // 전체 일평균 hourly
@@ -129,8 +136,8 @@ for (const [name, s] of acc) {
   for (const d of DIRECTIONS) {
     for (const t of USER_TYPES) {
       for (let h = 0; h < 24; h++) {
-        hourly[h] += cube[d][t].weekday[h] / numWeekdays
-        hourly[h] += cube[d][t].weekend[h] / numWeekends
+        hourly[h] += cube[d][t].weekday[h] / wdDays
+        hourly[h] += cube[d][t].weekend[h] / weDays
       }
     }
   }
@@ -143,9 +150,9 @@ for (const [name, s] of acc) {
     cube[d][t].weekend.reduce((a, v) => a + v, 0)
   )).reduce((a, v) => a + v, 0)
 
-  const wdAvg   = wdTotal / numWeekdays
-  const weAvg   = weTotal / numWeekends
-  const totalDays = numWeekdays + numWeekends
+  const wdAvg   = wdTotal / wdDays
+  const weAvg   = weTotal / weDays
+  const totalDays = wdDays + weDays
   const cnt     = Math.round((wdTotal + weTotal) / totalDays)
   const maxAvg  = Math.max(wdAvg, weAvg) || 1
 
