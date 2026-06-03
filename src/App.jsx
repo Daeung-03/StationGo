@@ -210,6 +210,8 @@ function getStationMetrics(filters, activeMetricMode) {
     let count = 0
     let visible = false
 
+    const hasValidCoords = !isNaN(station.lat) && !isNaN(station.lng)
+
     if (activeMetricMode) {
       const pm = station.peakMetrics?.[filters.weekday]
       if (pm) {
@@ -217,13 +219,13 @@ function getStationMetrics(filters, activeMetricMode) {
         // 호선·승객 수 필터는 피크 모드에서도 역 제외 기준으로 적용
         const lineMatch = filters.activeLines.size > 0 && station.lines.some((line) => filters.activeLines.has(line))
         const passengerMatch = station.cnt >= filters.passengerRange[0] && station.cnt <= filters.passengerRange[1]
-        visible = lineMatch && passengerMatch
+        visible = lineMatch && passengerMatch && hasValidCoords
       }
     } else {
       count = getFilteredCount(station, filters)
       const lineMatch = filters.activeLines.size > 0 && station.lines.some((line) => filters.activeLines.has(line))
       const passengerMatch = count >= filters.passengerRange[0] && count <= filters.passengerRange[1]
-      visible = lineMatch && passengerMatch && count > 0
+      visible = lineMatch && passengerMatch && count > 0 && hasValidCoords
     }
 
     return { ...station, count, visible }
@@ -654,6 +656,8 @@ function App() {
   const [tooltip, setTooltip] = useState(null)
   const [visibleStationIds, setVisibleStationIds] = useState(null)
   const [activeMetricMode, setActiveMetricMode] = useState(null)
+  const [rankNavBlocked, setRankNavBlocked] = useState(false)
+  const navBlockTimerRef = useRef(null)
 
   const handleMetricModeToggle = (mode) => {
     setActiveMetricMode((current) => (current === mode ? null : mode))
@@ -774,7 +778,14 @@ function App() {
   const handleTooltipHide = useCallback(() => setTooltip(null), [])
 
   const handleRankNav = (direction) => {
-    setRankPage((current) => Math.max(0, Math.min(pageCount - 1, current + direction)))
+    const next = Math.max(0, Math.min(pageCount - 1, rankPage + direction))
+    if (next === rankPage) {
+      if (navBlockTimerRef.current) clearTimeout(navBlockTimerRef.current)
+      setRankNavBlocked(true)
+      navBlockTimerRef.current = setTimeout(() => setRankNavBlocked(false), 1000)
+      return
+    }
+    setRankPage(next)
   }
 
   const selectStationByName = (name) => {
@@ -814,6 +825,7 @@ function App() {
           onTooltipShow={handleTooltipShow}
           pageCount={pageCount}
           pageStations={pageStations}
+          rankNavBlocked={rankNavBlocked}
           rankPage={safeRankPage}
           ranked={ranked}
           selectedStationId={selectedStationId}
@@ -1151,6 +1163,7 @@ function MapPanel({
   onTooltipShow,
   pageCount,
   pageStations,
+  rankNavBlocked,
   rankPage,
   ranked,
   selectedStationId,
@@ -1207,7 +1220,13 @@ function MapPanel({
       />
 
       <div className="rank-nav">
-        <button className="rn-arr" disabled={rankPage === 0} onClick={() => onRankNav(-1)}>‹</button>
+        {rankNavBlocked && (
+          <div className="rn-block-toast">다음 순위로 넘어갈 수 없습니다</div>
+        )}
+        <button
+          className={`rn-arr${rankPage === 0 ? ' rn-arr-end' : ''}`}
+          onClick={() => onRankNav(-1)}
+        >‹</button>
         <div className="rn-stations">
           {pageStations.length === 0
             ? <span className="rn-main">—</span>
@@ -1220,7 +1239,10 @@ function MapPanel({
             ))
           }
         </div>
-        <button className="rn-arr" disabled={rankPage === pageCount - 1} onClick={() => onRankNav(1)}>›</button>
+        <button
+          className={`rn-arr${rankPage === pageCount - 1 ? ' rn-arr-end' : ''}`}
+          onClick={() => onRankNav(1)}
+        >›</button>
       </div>
     </main>
   )
