@@ -1,5 +1,6 @@
 import stationInfoRaw from './station_info.csv?raw'
 import passengerSummary from './passenger_summary.json'
+import peakMetricsRaw from './station_peak_concentration_stability.csv?raw'
 
 // passenger_summary.json은 scripts/preprocess.mjs로 생성됩니다.
 // 원본 CSV가 갱신되면 `node scripts/preprocess.mjs` 재실행 후 커밋하세요.
@@ -42,6 +43,23 @@ export function buildStationsFromInfo() {
   const stationMap = new Map()
   const simMap = new Map()
 
+  const peakRows = parseCSV(peakMetricsRaw)
+  const peakMap = new Map()
+  for (const row of peakRows) {
+    const name = row['역명']
+    const type = row['주말구분']
+    if (!peakMap.has(name)) peakMap.set(name, {})
+    peakMap.get(name)[type] = {
+      totalPassengers: parseFloat(row['전체이용객수']),
+      peakHour: row['피크시간대'],
+      peakPassengers: parseFloat(row['피크시간대_이용객수']),
+      concentration: parseFloat(row['피크집중도']),
+      mean: parseFloat(row['시간대별_평균']),
+      std: parseFloat(row['시간대별_표준편차']),
+      stability: parseFloat(row['안정도']),
+    }
+  }
+
   for (const row of rows) {
     const name = row['기준역']
     if (!stationMap.has(name)) {
@@ -68,10 +86,12 @@ export function buildStationsFromInfo() {
 
   return Array.from(stationMap.values()).map(station => {
     const s = passengerSummary[station.name]
+    const pm = peakMap.get(station.name) ?? null
 
     return {
       ...station,
       tf: station.lines.length > 1,
+      peakMetrics: pm,
 
       // cube: getFilteredCount 에서 정확한 집계에 사용
       // null이면 loaders의 근사값(cnt·hourly·wdr·wkr)으로 fallback
