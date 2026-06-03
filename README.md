@@ -6,7 +6,7 @@
 
 아래 링크에서 `final_merged_weekly_nonzero.csv`를 다운로드한 뒤 `src/data/` 폴더에 넣어주세요.
 
-- 다운로드: https://drive.google.com/file/d/1KghLkbJqHV2VH-sQvadjwVTz5PUUU1A1/view?usp=drive_link
+- 다운로드: https://drive.google.com/file/d/1mq6Vc7YKdPVo1Jl2eCVi1dr1__xe6iKx/view?usp=sharing
 
 ```
 src/
