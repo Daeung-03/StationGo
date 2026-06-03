@@ -1877,6 +1877,23 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   background: #F8F9FF;
 }
 
+.simitem-navigated {
+  border-color: #3B6DFF;
+  background: #EEF3FF;
+}
+
+.simitem-navigated .sirank {
+  background: #3B6DFF;
+  color: #fff;
+}
+
+.siback-hint {
+  font-size: 12px;
+  color: #3B6DFF;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
 .sirank {
   width: 18px;
   height: 18px;
