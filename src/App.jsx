@@ -233,6 +233,7 @@ function loadKakaoMaps(appKey) {
 
 function KakaoMetroMap({
   boarding,
+  onMapReady,
   onStationClick,
   onTooltipHide,
   onTooltipMove,
@@ -270,6 +271,7 @@ function KakaoMetroMap({
         }
 
         setLoadState('ready')
+        if (onMapReady) onMapReady(mapRef.current)
       })
       .catch((err) => {
         console.error('[KakaoMaps] init error:', err)
@@ -1028,7 +1030,7 @@ function ChoiceSection({ label, onChange, options, value, disabled }) {
 }
 
 
-function StationSearchBox({ stationMetrics, onStationClick }) {
+function StationSearchBox({ stationMetrics, onSelect }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const boxRef = useRef(null)
@@ -1050,7 +1052,7 @@ function StationSearchBox({ stationMetrics, onStationClick }) {
   }, [open])
 
   const handleSelect = (station) => {
-    onStationClick(station.id)
+    onSelect(station)
     setQuery('')
     setOpen(false)
   }
@@ -1125,6 +1127,17 @@ function MapPanel({
   const pageIds = useMemo(() => pageStations.map((station) => station.id), [pageStations])
   const rankStart = ranked.length ? rankPage * 3 + 1 : 0
   const rankEnd = ranked.length ? Math.min(rankStart + 2, ranked.length) : 0
+  const mapInstanceRef = useRef(null)
+
+  const handleSearchSelect = useCallback((station) => {
+    onStationClick(station.id)
+    const map = mapInstanceRef.current
+    if (map && window.kakao?.maps) {
+      const kakao = window.kakao
+      map.setCenter(new kakao.maps.LatLng(station.lat, station.lng))
+      if (map.getLevel() > 4) map.setLevel(4)
+    }
+  }, [onStationClick])
 
   return (
     <main className="mapc internet-mapc">
@@ -1141,11 +1154,12 @@ function MapPanel({
             </div>
           ))}
         </div>
-        <StationSearchBox stationMetrics={stationMetrics} onStationClick={onStationClick} />
+        <StationSearchBox stationMetrics={stationMetrics} onSelect={handleSearchSelect} />
       </div>
 
       <KakaoMetroMap
         boarding={boarding}
+        onMapReady={(map) => { mapInstanceRef.current = map }}
         onStationClick={onStationClick}
         onTooltipHide={onTooltipHide}
         onTooltipMove={onTooltipMove}
