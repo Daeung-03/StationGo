@@ -793,6 +793,34 @@ function App() {
     if (station) setSelectedStationId(station.id)
   }
 
+  const mapInstanceRef = useRef(null)
+  const [navigatedStationName, setNavigatedStationName] = useState(null)
+  const selectedStationRef = useRef(selectedStation)
+  useEffect(() => { selectedStationRef.current = selectedStation }, [selectedStation])
+  useEffect(() => { setNavigatedStationName(null) }, [selectedStationId])
+
+  const navigateToStation = useCallback((name) => {
+    if (!mapInstanceRef.current || !window.kakao?.maps) return
+    const kakao = window.kakao
+    const map = mapInstanceRef.current
+
+    if (navigatedStationName === name) {
+      const sel = selectedStationRef.current
+      if (sel) {
+        map.setCenter(new kakao.maps.LatLng(sel.lat, sel.lng))
+        if (map.getLevel() > 4) map.setLevel(4)
+      }
+      setNavigatedStationName(null)
+      return
+    }
+
+    const station = STATIONS.find((s) => s.name === name)
+    if (!station) return
+    map.setCenter(new kakao.maps.LatLng(station.lat, station.lng))
+    if (map.getLevel() > 4) map.setLevel(4)
+    setNavigatedStationName(name)
+  }, [navigatedStationName])
+
   return (
     <div className="stationgo-app">
       <Navigation />
@@ -818,6 +846,7 @@ function App() {
         />
         <MapPanel
           boarding={boarding}
+          onMapInstanceReady={(map) => { mapInstanceRef.current = map }}
           onRankNav={handleRankNav}
           onStationClick={handleStationClick}
           onTooltipHide={handleTooltipHide}
@@ -837,6 +866,8 @@ function App() {
           activeMetricMode={activeMetricMode}
           filters={filters}
           metricMap={metricMap}
+          navigateToStation={navigateToStation}
+          navigatedStationName={navigatedStationName}
           onClose={() => setSelectedStationId(null)}
           onStationClick={handleStationClick}
           ranked={ranked}
@@ -1156,6 +1187,7 @@ function StationSearchBox({ stationMetrics, onSelect }) {
 
 function MapPanel({
   boarding,
+  onMapInstanceReady,
   onRankNav,
   onStationClick,
   onTooltipHide,
@@ -1206,7 +1238,7 @@ function MapPanel({
 
       <KakaoMetroMap
         boarding={boarding}
-        onMapReady={(map) => { mapInstanceRef.current = map }}
+        onMapReady={(map) => { mapInstanceRef.current = map; onMapInstanceReady?.(map) }}
         onStationClick={onStationClick}
         onTooltipHide={onTooltipHide}
         onTooltipMove={onTooltipMove}
@@ -1250,7 +1282,7 @@ function MapPanel({
 
 const CHART_BOARDING_COLORS = { '전체': '#3B6DFF', '승차': '#10B981', '하차': '#F97316' }
 
-function Dashboard({ activeMetricMode, filters, onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics }) {
+function Dashboard({ activeMetricMode, filters, navigateToStation, navigatedStationName, onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics }) {
   const [hoveredHour, setHoveredHour] = useState(null)
   const [hoveredVal, setHoveredVal] = useState(null)
   const [chartBoarding, setChartBoarding] = useState('전체')
@@ -1404,6 +1436,8 @@ function Dashboard({ activeMetricMode, filters, onClose, onStationClick, ranked,
         <div className="dsec no-border">
           <div className="dst">유사 역 추천</div>
           <SimilarStations
+            navigateToStation={navigateToStation}
+            navigatedStationName={navigatedStationName}
             selectStationByName={selectStationByName}
             station={selectedStation}
           />
@@ -1805,7 +1839,7 @@ function BoardingRatioBar({ ratio }) {
   )
 }
 
-function SimilarStations({ selectStationByName, station }) {
+function SimilarStations({ navigateToStation, navigatedStationName, selectStationByName, station }) {
   const names = station?.simPat ?? []
 
   if (!names.length) {
@@ -1821,13 +1855,20 @@ function SimilarStations({ selectStationByName, station }) {
       {names.map((name, index) => {
         const s = STATIONS.find((st) => st.name === name)
         const lines = s ? s.lines.join('·') : ''
+        const isNavigated = navigatedStationName === name
         return (
-          <button className="simitem" key={name} onClick={() => selectStationByName(name)}>
+          <button
+            className={`simitem${isNavigated ? ' simitem-navigated' : ''}`}
+            key={name}
+            onClick={() => navigateToStation(name)}
+            title={isNavigated ? `다시 누르면 ${station.name}으로 복귀` : undefined}
+          >
             <span className="sirank">{index + 1}</span>
             <span className="siinfo">
               <span className="siname">{name}</span>
               {lines && <span className="siline">{lines}</span>}
             </span>
+            {isNavigated && <span className="siback-hint">↩</span>}
           </button>
         )
       })}
