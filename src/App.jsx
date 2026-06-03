@@ -222,9 +222,8 @@ function getStationMetrics(filters, activeMetricMode) {
     } else {
       count = getFilteredCount(station, filters)
       const lineMatch = filters.activeLines.size > 0 && station.lines.some((line) => filters.activeLines.has(line))
-      const transferMatch = filters.transfer === '전체' || (filters.transfer === '환승역만' ? station.tf : !station.tf)
       const passengerMatch = count >= filters.passengerRange[0] && count <= filters.passengerRange[1]
-      visible = lineMatch && transferMatch && passengerMatch && count > 0
+      visible = lineMatch && passengerMatch && count > 0
     }
 
     return { ...station, count, visible }
@@ -649,7 +648,6 @@ function App() {
   const [passengerRange, setPassengerRange] = useState([0, PASSENGER_RANGE_MAX])
   const [weekday, setWeekday] = useState('전체')
   const [boarding, setBoarding] = useState('전체')
-  const [transfer, setTransfer] = useState('전체')
   const [activeTypes, setActiveTypes] = useState(() => new Set(USER_TYPES))
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
   const [selectedPreset, setSelectedPreset] = useState('사용자 정의')
@@ -668,9 +666,8 @@ function App() {
     boarding,
     passengerRange,
     timeRange,
-    transfer,
     weekday,
-  }), [activeLines, activeTypes, boarding, passengerRange, timeRange, transfer, weekday])
+  }), [activeLines, activeTypes, boarding, passengerRange, timeRange, weekday])
   const { metricMap, ranked, stationMetrics } = useMemo(() => getRankedStations(filters, activeMetricMode), [filters, activeMetricMode])
   const pageCount = Math.max(1, Math.ceil(ranked.length / 3))
   const safeRankPage = Math.min(rankPage, pageCount - 1)
@@ -800,14 +797,12 @@ function App() {
           onPassengerRangeChange={updatePassengerRange}
           onPresetChange={applyPreset}
           onTimeRangeChange={updateTimeRange}
-          onTransferChange={updateChoice(setTransfer)}
           onTypeToggle={toggleUserType}
           onWeekdayChange={updateChoice(setWeekday)}
           maxPassenger={PASSENGER_RANGE_MAX}
           passengerRange={passengerRange}
           selectedPreset={selectedPreset}
           timeRange={timeRange}
-          transfer={transfer}
           weekday={weekday}
         />
         <MapPanel
@@ -873,13 +868,11 @@ function Sidebar({
   onPassengerRangeChange,
   onPresetChange,
   onTimeRangeChange,
-  onTransferChange,
   onTypeToggle,
   onWeekdayChange,
   passengerRange,
   selectedPreset,
   timeRange,
-  transfer,
   weekday,
 }) {
   const [ddOpen, setDdOpen] = useState(false)
@@ -972,7 +965,6 @@ function Sidebar({
         </div>
 
         <ChoiceSection label="승 / 하차" onChange={onBoardingChange} options={['전체', '승차', '하차']} value={boarding} disabled={!!activeMetricMode} />
-        <ChoiceSection label="환승역" onChange={onTransferChange} options={['전체', '환승역만', '비환승']} value={transfer} disabled={!!activeMetricMode} />
 
         <div className="fsec">
           <div className="flabel">호선</div>
@@ -1826,7 +1818,6 @@ function Tooltip({ activeMetricMode, ranked, selectedStation, tooltip }) {
 
   const { station, rank, x, y } = tooltip
   const diff = selectedStation && selectedStation.id !== station.id ? station.count - selectedStation.count : null
-  const firstLine = station.lines[0]
   const distance =
     selectedStation && selectedStation.id !== station.id
       ? getDistanceKm(station, selectedStation).toFixed(1)
@@ -1847,7 +1838,11 @@ function Tooltip({ activeMetricMode, ranked, selectedStation, tooltip }) {
     <div className="tt show" style={{ left: x + 14, top: y - 10 }}>
       <div className="ttn">
         {station.name}
-        <span className="ttlb" style={lineTagStyle(firstLine)}>{firstLine}</span>
+        <span className="ttnlines">
+          {station.lines.map((line) => (
+            <span key={line} className="ttlb" style={lineTagStyle(line)}>{line}</span>
+          ))}
+        </span>
       </div>
       <div className="ttr">
         <span className="ttk">{getMetricLabel(activeMetricMode)}</span>
@@ -1873,12 +1868,6 @@ function Tooltip({ activeMetricMode, ranked, selectedStation, tooltip }) {
             </span>
           </div>
         </>
-      )}
-      {station.tf && (
-        <div className="ttr">
-          <span className="ttk">환승역</span>
-          <span className="ttv tt-transfer">✓</span>
-        </div>
       )}
     </div>
   )
