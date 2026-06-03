@@ -293,6 +293,27 @@ function KakaoMetroMap({
   const overlaysRef = useRef([])
   const lastMousePos = useRef({ clientX: 0, clientY: 0 })
   const [loadState, setLoadState] = useState(KAKAO_MAP_KEY ? 'loading' : 'missing')
+  const [showZoomToast, setShowZoomToast] = useState(false)
+  const [zoomToastKey, setZoomToastKey] = useState(0)
+  const toastTimeoutRef = useRef(null)
+  const isProgrammaticRef = useRef(false)
+
+  const triggerZoomToast = useCallback(() => {
+    setShowZoomToast(true)
+    setZoomToastKey((prev) => prev + 1)
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    toastTimeoutRef.current = setTimeout(() => {
+      setShowZoomToast(false)
+    }, 1500)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!KAKAO_MAP_KEY) {
@@ -515,10 +536,14 @@ function KakaoMetroMap({
     if (hasPoints) {
       const isDashOpen = !!selectedId
       const paddingRight = isDashOpen ? 120 : 50
+      isProgrammaticRef.current = true
       map.setBounds(bounds, 50, paddingRight, 50, 50)
       if (map.getLevel() < 5) {
         map.setLevel(5)
+      } else if (map.getLevel() > 8) {
+        map.setLevel(8)
       }
+      isProgrammaticRef.current = false
     }
   }, [loadState, pageIds, stationMetrics])
 
@@ -562,6 +587,13 @@ function KakaoMetroMap({
     const LABEL_ZOOM_THRESHOLD = 5  // level ≤ 5 → show all labels; level ≥ 6 → hide non-pinned/non-selected
 
     const updateZoomClass = () => {
+      const currentLevel = map.getLevel()
+      if (currentLevel > 8) {
+        if (!isProgrammaticRef.current) {
+          triggerZoomToast()
+        }
+        map.setLevel(8)
+      }
       if (container) container.classList.toggle('map-zoomed-out', map.getLevel() > LABEL_ZOOM_THRESHOLD)
     }
 
@@ -571,7 +603,7 @@ function KakaoMetroMap({
     return () => {
       kakao.maps.event.removeListener(map, 'zoom_changed', updateZoomClass)
     }
-  }, [loadState])
+  }, [loadState, triggerZoomToast])
 
   // idle 이벤트 리스너 등록
   useEffect(() => {
@@ -632,6 +664,11 @@ function KakaoMetroMap({
   return (
     <>
       <div className="internet-map kakao-map" ref={containerRef} />
+      {showZoomToast && (
+        <div key={zoomToastKey} className="zoom-limit-toast">
+          더 축소할 수 없습니다
+        </div>
+      )}
       {loadState !== 'ready' && (
         <div className="map-provider-placeholder overlay">
           <div className="provider-card">
