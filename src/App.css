@@ -1037,6 +1037,130 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   top: 14px;
   left: 14px;
   z-index: 10;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Station search box */
+.ssb-wrap {
+  position: relative;
+}
+
+.ssb-input-row {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  min-width: 150px;
+}
+
+.ssb-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ssb-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1A202C;
+  width: 120px;
+  min-width: 0;
+}
+
+.ssb-input::placeholder {
+  color: #A0AABF;
+  font-weight: 400;
+}
+
+.ssb-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #A0AABF;
+  font-size: 10px;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+
+.ssb-clear:hover {
+  color: #3B6DFF;
+}
+
+.ssb-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.13);
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 20;
+  padding: 4px 0;
+}
+
+.ssb-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.ssb-item:hover {
+  background: #F0F4FF;
+}
+
+.ssb-item-dim {
+  opacity: 0.45;
+}
+
+.ssb-sname {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1A202C;
+  white-space: nowrap;
+}
+
+.ssb-lines {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.ssb-ltag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
+.ssb-no-result {
+  padding: 10px 14px;
+  font-size: 11px;
+  color: #A0AABF;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .rb-card {
