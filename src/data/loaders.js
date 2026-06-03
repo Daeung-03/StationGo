@@ -90,7 +90,6 @@ export function buildStationsFromInfo() {
 
     return {
       ...station,
-      tf: station.lines.length > 1,
       peakMetrics: pm,
 
       // cube: getFilteredCount 에서 정확한 집계에 사용
