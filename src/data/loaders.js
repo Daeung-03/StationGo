@@ -103,7 +103,7 @@ export function buildStationsFromInfo() {
       hourly: s?.hourly ?? FALLBACK_HOURLY,
       wdr:    s?.wdr    ?? 1.0,
       wkr:    s?.wkr    ?? 0.8,
-      age:    s?.age    ?? { 아동: 10, 청소년: 15, 중고생: 10, 일반: 50, 우대권: 15 },
+      age:    s?.age    ?? { 아동: 10, 청소년: 15, 중고생: 10, 일반: 45, 우대권: 15, 외국인: 5 },
 
       attr: {
         구: '미정',

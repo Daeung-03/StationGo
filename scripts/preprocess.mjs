@@ -40,7 +40,7 @@ const headers = headerLine.split(',').map(h => h.trim())
 const colIndex = {}
 headers.forEach((h, i) => { colIndex[h] = i })
 
-const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권']
+const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권', '외국인']
 const DIRECTIONS = ['승차', '하차']
 
 // ── 동일 역 이름 통합 (CSV 역명 → station_info 기준 정규 역명) ─────────────
@@ -88,8 +88,9 @@ for (const line of dataLines) {
     아동:   cnt어린이,
     청소년: cnt청소년,
     중고생: 0,
-    일반:   cnt일반 + cnt직원 + cnt외국인,
+    일반:   cnt일반 + cnt직원,
     우대권: cnt노인,
+    외국인: cnt외국인,
   }
 
   if (!acc.has(name)) {
