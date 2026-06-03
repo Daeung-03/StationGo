@@ -540,8 +540,8 @@ function KakaoMetroMap({
       map.setBounds(bounds, 50, paddingRight, 50, 50)
       if (map.getLevel() < 5) {
         map.setLevel(5)
-      } else if (map.getLevel() > 8) {
-        map.setLevel(8)
+      } else if (map.getLevel() > 9) {
+        map.setLevel(9)
       }
       isProgrammaticRef.current = false
     }
@@ -588,11 +588,11 @@ function KakaoMetroMap({
 
     const updateZoomClass = () => {
       const currentLevel = map.getLevel()
-      if (currentLevel > 8) {
+      if (currentLevel > 9) {
         if (!isProgrammaticRef.current) {
           triggerZoomToast()
         }
-        map.setLevel(8)
+        map.setLevel(9)
       }
       if (container) container.classList.toggle('map-zoomed-out', map.getLevel() > LABEL_ZOOM_THRESHOLD)
     }
