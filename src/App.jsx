@@ -286,6 +286,7 @@ function KakaoMetroMap({
   selectedStationId,
   stationMetrics,
   onVisibleStationsChange,
+  localTopIds,
 }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -355,6 +356,8 @@ function KakaoMetroMap({
       const radius = getRadius(station, stationMetrics)
       const selected = selectedStationId === station.id
       const inPage = pageIds.includes(station.id)
+      const isLocalTop = localTopIds?.includes(station.id)
+      const isNotGlobalLocalTop = isLocalTop && !inPage
       const globalRank = ranked.findIndex((item) => item.id === station.id) + 1
       const localRank = pageIds.indexOf(station.id) + 1
       const color = LINE_COLORS[station.lines[0]] || '#3B6DFF'
@@ -368,20 +371,20 @@ function KakaoMetroMap({
       // Visual circle
       const circle = new kakao.maps.Circle({
         center: position,
-        fillColor: inPage ? rankFill : selected ? '#FF4757' : '#f5dd00',
-        fillOpacity: station.visible ? (inPage ? 0.40 : selected ? 0.95 : 0.85) : 0.18,
+        fillColor: inPage ? rankFill : selected ? '#FF4757' : isNotGlobalLocalTop ? '#FF5C00' : '#f5dd00',
+        fillOpacity: station.visible ? (inPage ? 0.40 : selected ? 0.95 : isNotGlobalLocalTop ? 0.85 : 0.85) : 0.18,
         map,
         radius: inPage ? inPageRadius : circleRadius,
-        strokeColor: inPage ? rankFill : '#ffffff',
+        strokeColor: inPage ? rankFill : isNotGlobalLocalTop ? '#FF5C00' : '#ffffff',
         strokeOpacity: station.visible ? 0.9 : 0.2,
-        strokeWeight: inPage ? 4 : 3,
-        zIndex: selected ? 10 : inPage ? 8 : 5,
+        strokeWeight: inPage ? 4 : isNotGlobalLocalTop ? 3.5 : 3,
+        zIndex: selected ? 10 : inPage ? 8 : isNotGlobalLocalTop ? 7 : 5,
       })
       overlaysRef.current.push(circle)
 
       if (station.visible) {
-        const prominent = selected || inPage
-        const labelClass = selected ? ' selected' : inPage ? ' pinned' : ''
+        const prominent = selected || inPage || isNotGlobalLocalTop
+        const labelClass = selected ? ' selected' : inPage ? ' pinned' : isNotGlobalLocalTop ? ' local-top' : ''
 
         const el = document.createElement('span')
         el.className = `kakao-station-label${labelClass}`
@@ -485,6 +488,7 @@ function KakaoMetroMap({
     ranked,
     selectedStationId,
     stationMetrics,
+    localTopIds,
   ])
 
   const selectedStationIdRef = useRef(selectedStationId)
@@ -1204,6 +1208,7 @@ function MapPanel({
   onVisibleStationsChange,
 }) {
   const pageIds = useMemo(() => pageStations.map((station) => station.id), [pageStations])
+  const localTopIds = useMemo(() => localTop3.map((station) => station.id), [localTop3])
   const rankStart = ranked.length ? rankPage * 3 + 1 : 0
   const rankEnd = ranked.length ? Math.min(rankStart + 2, ranked.length) : 0
   const mapInstanceRef = useRef(null)
@@ -1249,6 +1254,7 @@ function MapPanel({
         selectedStationId={selectedStationId}
         stationMetrics={stationMetrics}
         onVisibleStationsChange={onVisibleStationsChange}
+        localTopIds={localTopIds}
       />
 
       <div className="rank-nav">

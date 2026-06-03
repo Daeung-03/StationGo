@@ -970,7 +970,13 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   box-shadow: 0 2px 8px rgba(59, 109, 255, 0.18), 0 0 0 1.5px rgba(59, 109, 255, 0.28);
 }
 
-.map-zoomed-out .kakao-station-label:not(.selected):not(.pinned) {
+.kakao-station-label.local-top {
+  color: #FF5C00;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 2px 8px rgba(255, 92, 0, 0.18), 0 0 0 1.5px rgba(255, 92, 0, 0.28);
+}
+
+.map-zoomed-out .kakao-station-label:not(.selected):not(.pinned):not(.local-top) {
   display: none;
 }
 
