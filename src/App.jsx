@@ -164,6 +164,47 @@ function getHourlyData(station, filters) {
   return station.hourly.map((val) => Math.round(val * dayFactor * ageFactor * directionFactor))
 }
 
+function getBoardingRatio(station, filters) {
+  if (!station.cube) {
+    return {
+      boardingPct: 52, alightingPct: 48,
+      boardingCount: Math.round(station.cnt * 0.52),
+      alightingCount: Math.round(station.cnt * 0.48),
+    }
+  }
+  const { weekday, activeTypes, timeRange: [start, end] } = filters
+  const { numWeekdays, numWeekends, data } = station.cube
+  const wdDays = numWeekdays * 5
+  const weDays = numWeekends * 2
+  let bWd = 0, bWe = 0, aWd = 0, aWe = 0
+  for (const type of USER_TYPES) {
+    if (!activeTypes.has(type)) continue
+    for (let h = start; h < end; h++) {
+      bWd += data['승차']?.[type]?.weekday[h] ?? 0
+      bWe += data['승차']?.[type]?.weekend[h] ?? 0
+      aWd += data['하차']?.[type]?.weekday[h] ?? 0
+      aWe += data['하차']?.[type]?.weekend[h] ?? 0
+    }
+  }
+  let bCount, aCount
+  if (weekday === '평일') {
+    bCount = bWd / (wdDays || 1); aCount = aWd / (wdDays || 1)
+  } else if (weekday === '주말') {
+    bCount = bWe / (weDays || 1); aCount = aWe / (weDays || 1)
+  } else {
+    const td = (wdDays + weDays) || 1
+    bCount = (bWd + bWe) / td; aCount = (aWd + aWe) / td
+  }
+  const total = bCount + aCount
+  if (total === 0) return { boardingPct: 50, alightingPct: 50, boardingCount: 0, alightingCount: 0 }
+  return {
+    boardingPct: Math.round(bCount / total * 100),
+    alightingPct: Math.round(aCount / total * 100),
+    boardingCount: Math.round(bCount),
+    alightingCount: Math.round(aCount),
+  }
+}
+
 function getStationMetrics(filters, activeMetricMode) {
   return STATIONS.map((station) => {
     let count = 0
@@ -787,6 +828,7 @@ function App() {
         />
         <Dashboard
           activeMetricMode={activeMetricMode}
+          filters={filters}
           metricMap={metricMap}
           onClose={() => setSelectedStationId(null)}
           onStationClick={handleStationClick}
@@ -1192,9 +1234,18 @@ function MapPanel({
   )
 }
 
-function Dashboard({ activeMetricMode, onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics }) {
+const CHART_BOARDING_COLORS = { '전체': '#3B6DFF', '승차': '#10B981', '하차': '#F97316' }
+
+function Dashboard({ activeMetricMode, filters, onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics }) {
   const [hoveredHour, setHoveredHour] = useState(null)
   const [hoveredVal, setHoveredVal] = useState(null)
+  const [chartBoarding, setChartBoarding] = useState('전체')
+
+  useEffect(() => {
+    setChartBoarding('전체')
+    setHoveredHour(null)
+    setHoveredVal(null)
+  }, [selectedStation?.id])
 
   if (!selectedStation) return <aside className="dash" />
 
@@ -1222,6 +1273,15 @@ function Dashboard({ activeMetricMode, onClose, onStationClick, ranked, selected
 
   // 피크 모드에서도 기존 이용자 정보는 station.cnt(기본 일평균)로 표시
   const passengerCount = isPeakMode ? selectedStation.cnt : selectedStation.count
+
+  const chartColor = CHART_BOARDING_COLORS[chartBoarding]
+  const chartHourlyValues = filters
+    ? getHourlyData(selectedStation, { ...filters, boarding: chartBoarding })
+    : selectedStation.hourly
+
+  const boardingRatio = filters
+    ? getBoardingRatio(selectedStation, filters)
+    : { boardingPct: 52, alightingPct: 48, boardingCount: 0, alightingCount: 0 }
 
   return (
     <aside className="dash open">
@@ -1278,15 +1338,32 @@ function Dashboard({ activeMetricMode, onClose, onStationClick, ranked, selected
         </div>
 
         <div className="dsec">
+          <div className="dst">승차 / 하차 비율</div>
+          <BoardingRatioBar ratio={boardingRatio} />
+        </div>
+
+        <div className="dsec">
           <div className="dst" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>시간대별 이용자</span>
             {hoveredHour !== null && (
-              <span style={{ fontSize: '11px', color: '#3B6DFF', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', color: chartColor, fontWeight: 600 }}>
                 {String(hoveredHour).padStart(2, '0')}시 · {hoveredVal?.toLocaleString()}명
               </span>
             )}
           </div>
-          <HourlyChart hourlyValues={selectedStation.hourly} onHoverChange={handleHourHover} />
+          <div className="chart-tab-row">
+            {['전체', '승차', '하차'].map((opt) => (
+              <button
+                key={opt}
+                className={`chart-tab-btn ${chartBoarding === opt ? 'on' : ''}`}
+                style={chartBoarding === opt ? { borderColor: CHART_BOARDING_COLORS[opt], color: CHART_BOARDING_COLORS[opt], background: `${CHART_BOARDING_COLORS[opt]}12` } : undefined}
+                onClick={() => setChartBoarding(opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          <HourlyChart chartColor={chartColor} hourlyValues={chartHourlyValues} onHoverChange={handleHourHover} />
         </div>
 
         <div className="dsec">
@@ -1322,10 +1399,12 @@ function Dashboard({ activeMetricMode, onClose, onStationClick, ranked, selected
   )
 }
 
-function HourlyChart({ hourlyValues, onHoverChange }) {
+function HourlyChart({ chartColor = '#3B6DFF', hourlyValues, onHoverChange }) {
   const [hoveredIdx, setHoveredIdx] = useState(null)
 
   if (!hourlyValues || hourlyValues.length === 0) return null
+
+  const gradId = `hourlyAreaGrad-${chartColor.replace('#', '')}`
 
   const startIndex = 6
   const slicedValues = hourlyValues.slice(startIndex)
@@ -1432,9 +1511,9 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
     >
       <svg height={height} style={{ overflow: 'visible' }} width={width}>
         <defs>
-          <linearGradient id="hourlyAreaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#3B6DFF" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#3B6DFF" stopOpacity="0.00" />
+          <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={chartColor} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={chartColor} stopOpacity="0.00" />
           </linearGradient>
         </defs>
 
@@ -1475,12 +1554,12 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
           y2={height - paddingBottom}
         />
 
-        <path d={areaPath} fill="url(#hourlyAreaGrad)" />
+        <path d={areaPath} fill={`url(#${gradId})`} />
 
         <path
           d={linePath}
           fill="none"
-          stroke="#3B6DFF"
+          stroke={chartColor}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2"
@@ -1508,7 +1587,7 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
         {hoveredPoint && (
           <g>
             <line
-              stroke="#3B6DFF"
+              stroke={chartColor}
               strokeDasharray="2,2"
               strokeOpacity="0.4"
               strokeWidth="1.5"
@@ -1520,7 +1599,7 @@ function HourlyChart({ hourlyValues, onHoverChange }) {
             <circle
               cx={hoveredPoint.x}
               cy={hoveredPoint.y}
-              fill="#3B6DFF"
+              fill={chartColor}
               r="5"
               stroke="#fff"
               strokeWidth="2"
@@ -1683,6 +1762,32 @@ function AgePie({ count, station }) {
         {((count ?? station.count) / 1000).toFixed(1)}K
       </text>
     </svg>
+  )
+}
+
+function BoardingRatioBar({ ratio }) {
+  const { boardingPct, alightingPct, boardingCount, alightingCount } = ratio
+  return (
+    <div className="boarding-ratio-wrap">
+      <div className="boarding-ratio-bar">
+        <div className="brb-boarding" style={{ width: `${boardingPct}%` }} />
+        <div className="brb-alighting" style={{ flex: 1 }} />
+      </div>
+      <div className="boarding-ratio-stats">
+        <div className="brs-item">
+          <span className="brs-arrow-up">↑</span>
+          <span className="brs-label">승차</span>
+          <span className="brs-pct">{boardingPct}%</span>
+          <span className="brs-count">{boardingCount.toLocaleString()}명</span>
+        </div>
+        <div className="brs-item brs-right">
+          <span className="brs-count">{alightingCount.toLocaleString()}명</span>
+          <span className="brs-pct">{alightingPct}%</span>
+          <span className="brs-label">하차</span>
+          <span className="brs-arrow-down">↓</span>
+        </div>
+      </div>
+    </div>
   )
 }
 

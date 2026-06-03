@@ -2040,3 +2040,96 @@ input[type=range].eq-sl:disabled::-webkit-slider-thumb {
   border-left: 3px solid #3b6dff;
   margin-bottom: 4px;
 }
+
+/* ── 시간대별 이용자 탭 ─────────────────────────── */
+.chart-tab-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.chart-tab-btn {
+  padding: 3px 9px;
+  border-radius: 10px;
+  border: 1.5px solid #E4E8F5;
+  background: transparent;
+  color: #8A95AC;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.chart-tab-btn:hover {
+  border-color: #C4CAD9;
+  color: #5A6377;
+}
+
+/* ── 승차/하차 비율 바 ───────────────────────────── */
+.boarding-ratio-wrap {
+  margin-top: 2px;
+}
+
+.boarding-ratio-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #EEF0F9;
+}
+
+.brb-boarding {
+  background: #10B981;
+  transition: width 0.3s ease;
+}
+
+.brb-alighting {
+  background: #F97316;
+}
+
+.boarding-ratio-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.brs-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.brs-right {
+  flex-direction: row-reverse;
+}
+
+.brs-arrow-up {
+  font-size: 11px;
+  color: #10B981;
+  font-weight: 800;
+}
+
+.brs-arrow-down {
+  font-size: 11px;
+  color: #F97316;
+  font-weight: 800;
+}
+
+.brs-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #5A6377;
+}
+
+.brs-pct {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1A202C;
+}
+
+.brs-count {
+  font-size: 10px;
+  color: #8A95AC;
+  font-weight: 500;
+}
