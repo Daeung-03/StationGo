@@ -104,13 +104,6 @@ export function buildStationsFromInfo() {
       wkr:    s?.wkr    ?? 0.8,
       age:    s?.age    ?? { 아동: 10, 청소년: 15, 중고생: 10, 일반: 45, 우대권: 15, 외국인: 5 },
 
-      attr: {
-        구: '미정',
-        개통: '미정',
-        출구: '미정',
-        노선: `${station.lines.length}개`,
-      },
-
       simPat: simMap.get(station.name) ?? [],
     }
   })

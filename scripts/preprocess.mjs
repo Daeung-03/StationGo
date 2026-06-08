@@ -87,7 +87,6 @@ for (const line of dataLines) {
   const typeValues = {
     아동:   cnt어린이,
     청소년: cnt청소년,
-    중고생: 0,
     일반:   cnt일반 + cnt직원,
     우대권: cnt노인,
     외국인: cnt외국인,
