@@ -967,8 +967,8 @@ function Navigation() {
       <div className="nav-info-wrap">
         <button className="nav-info-btn" aria-label="프로젝트 정보">i</button>
         <div className="nav-info-popup">
-          <div className="nav-info-title">프로젝트 정보</div>
-          <div className="nav-info-body">프로젝트 정보 작성 예정</div>
+          <div className="nav-info-title">StationGo</div>
+          <div className="nav-info-body">2025년 서울 지하철(1~8호선) 승하차 데이터를 인터랙티브하게 탐색하는 시각화 서비스입니다. 호선·시간대·승객 유형 등 필터를 조합하고, 역을 클릭해 시간대별 패턴·연령대 분포·유사 역을 확인할 수 있습니다.</div>
         </div>
       </div>
     </nav>
