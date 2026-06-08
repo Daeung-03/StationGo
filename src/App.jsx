@@ -829,11 +829,6 @@ function App() {
     setRankPage(next)
   }
 
-  const selectStationByName = (name) => {
-    const station = stationMetrics.find((item) => item.name === name && item.visible)
-    if (station) setSelectedStationId(station.id)
-  }
-
   const mapInstanceRef = useRef(null)
   const [navigatedStationName, setNavigatedStationName] = useState(null)
   const selectedStationRef = useRef(selectedStation)
@@ -906,14 +901,11 @@ function App() {
         <Dashboard
           activeMetricMode={activeMetricMode}
           filters={filters}
-          metricMap={metricMap}
           navigateToStation={navigateToStation}
           navigatedStationName={navigatedStationName}
           onClose={() => setSelectedStationId(null)}
-          onStationClick={handleStationClick}
           ranked={ranked}
           selectedStation={selectedStation}
-          selectStationByName={selectStationByName}
           stationMetrics={stationMetrics}
         />
       </div>
@@ -1325,7 +1317,7 @@ function MapPanel({
 
 const CHART_BOARDING_COLORS = { '전체': '#3B6DFF', '승차': '#10B981', '하차': '#F97316' }
 
-function Dashboard({ activeMetricMode, filters, navigateToStation, navigatedStationName, onClose, onStationClick, ranked, selectedStation, selectStationByName, stationMetrics }) {
+function Dashboard({ activeMetricMode, filters, navigateToStation, navigatedStationName, onClose, ranked, selectedStation, stationMetrics }) {
   const [hoveredHour, setHoveredHour] = useState(null)
   const [hoveredVal, setHoveredVal] = useState(null)
   const [chartBoarding, setChartBoarding] = useState('전체')
@@ -1481,7 +1473,6 @@ function Dashboard({ activeMetricMode, filters, navigateToStation, navigatedStat
           <SimilarStations
             navigateToStation={navigateToStation}
             navigatedStationName={navigatedStationName}
-            selectStationByName={selectStationByName}
             station={selectedStation}
           />
         </div>
@@ -1882,7 +1873,7 @@ function BoardingRatioBar({ ratio }) {
   )
 }
 
-function SimilarStations({ navigateToStation, navigatedStationName, selectStationByName, station }) {
+function SimilarStations({ navigateToStation, navigatedStationName, station }) {
   const names = station?.simPat ?? []
 
   if (!names.length) {
