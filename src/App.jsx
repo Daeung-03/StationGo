@@ -1,3 +1,19 @@
+// ─────────────────────────────────────────────────────────────
+// App.jsx – StationGo 전체 진입점
+//
+//  ┌ 상수 & 정적 데이터
+//  ├ 포맷 / 표현 유틸
+//  ├ 큐브 기반 수치 계산  (필터 → 이용자 수)
+//  ├ 지도 마커 계산        (필터 → 지도 표시 상태)
+//  ├ KakaoMetroMap        (지도 캔버스)
+//  ├ App                  (최상위 상태 관리)
+//  ├ Navigation / Sidebar / DualRange / ChoiceSection  (레이아웃 & 필터 UI)
+//  ├ StationSearchBox      (역 검색)
+//  ├ MapPanel              (지도 + 순위 바)
+//  ├ Dashboard             (선택 역 상세 패널)
+//  │   └ HourlyChart / StationSummary / AgePie / BoardingRatioBar / SimilarStations
+//  └ Tooltip               (마우스 오버 카드)
+// ─────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { buildStationsFromInfo } from './data/loaders.js'
@@ -6,6 +22,9 @@ import rank2Img from './assets/rank2.png'
 import rank3Img from './assets/rank3.png'
 import rankCommonImg from './assets/rank_common.png'
 
+// ─────────────────────────────────────────────────────────────
+// 상수 & 정적 데이터
+// ─────────────────────────────────────────────────────────────
 const KAKAO_MAP_KEY = import.meta.env.VITE_KAKAO_MAP_KEY
 
 const LINE_COLORS = {
@@ -33,14 +52,14 @@ const STATIONS = buildStationsFromInfo()
 // 승객 수 필터 슬라이더 상한: 실제 최대 cnt를 10,000 단위로 올림
 const PASSENGER_RANGE_MAX = Math.ceil(Math.max(...STATIONS.map(s => s.cnt), 10000) / 10000) * 10000
 
-
 const LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선']
 const USER_TYPES = ['아동', '청소년', '중고생', '일반', '우대권', '외국인']
 const AGE_ORDER = ['아동', '일반', '외국인', '중고생', '청소년', '우대권']
 const RANK_DOT_CLASSES = ['rd1', 'rd2', 'rd3']
 
-
-
+// ─────────────────────────────────────────────────────────────
+// 포맷 / 표현 유틸
+// ─────────────────────────────────────────────────────────────
 function formatHour(value) {
   return `${String(Math.round(value)).padStart(2, '0')}:00`
 }
@@ -81,10 +100,15 @@ function lineTagStyle(line) {
   return { background: `${color}22`, color }
 }
 
+// ─────────────────────────────────────────────────────────────
+// 큐브 기반 수치 계산
+// cube 구조: data[direction][type]['weekday'|'weekend'][hour 0-23]
+// ─────────────────────────────────────────────────────────────
+/** 필터 조건을 반영한 일평균 이용자 수. cube 없는 역은 hourly 비율 기반 근사값으로 fallback. */
 function getFilteredCount(station, filters) {
   const { cube } = station
 
-  // ── 큐브 기반 정확 계산 (passenger_summary.json 수록 역) ──────────────
+  // cube 정밀 계산
   if (cube) {
     const { timeRange: [start, end], weekday, activeTypes, boarding } = filters
     const { numWeekdays, numWeekends, data } = cube
@@ -124,6 +148,7 @@ function getFilteredCount(station, filters) {
   return Math.round(station.cnt * timeFactor * dayFactor * ageFactor * directionFactor)
 }
 
+/** 필터 조건을 반영한 24시간대별 이용자 배열. 대시보드 차트에서 사용. */
 function getHourlyData(station, filters) {
   const { cube } = station
   const hourlyData = Array(24).fill(0)
@@ -164,6 +189,7 @@ function getHourlyData(station, filters) {
   return station.hourly.map((val) => Math.round(val * dayFactor * ageFactor * directionFactor))
 }
 
+/** 선택 조건 기준 승차/하차 비율과 절대 인원수. cube 없는 역은 52:48 고정 비율로 fallback. */
 function getBoardingRatio(station, filters) {
   if (!station.cube) {
     return {
@@ -205,6 +231,8 @@ function getBoardingRatio(station, filters) {
   }
 }
 
+// 지도 마커 계산 – 필터를 반영해 역별 count와 visible을 결정한다
+/** 피크 모드면 count = 안정도/집중도, 일반 모드면 count = 이용자 수. */
 function getStationMetrics(filters, activeMetricMode) {
   return STATIONS.map((station) => {
     let count = 0
@@ -232,6 +260,7 @@ function getStationMetrics(filters, activeMetricMode) {
   })
 }
 
+/** visible 역만 내림차순 정렬(ranked)하고, id → station 빠른 조회용 metricMap도 반환. */
 function getRankedStations(filters, activeMetricMode) {
   const stationMetrics = getStationMetrics(filters, activeMetricMode)
   const ranked = stationMetrics.filter((station) => station.visible).sort((a, b) => b.count - a.count)
@@ -240,6 +269,7 @@ function getRankedStations(filters, activeMetricMode) {
   return { metricMap, ranked, stationMetrics }
 }
 
+/** 마커 원 반지름. visible 역 최댓값 대비 sqrt 스케일로 면적 비례시킨다. */
 function getRadius(station, stationMetrics) {
   const visibleMetrics = stationMetrics.filter((item) => item.visible)
   const maxValue = Math.max(...visibleMetrics.map((item) => item.count), 1)
@@ -248,6 +278,8 @@ function getRadius(station, stationMetrics) {
   return 0.7 + (2.7 - 0.7) * Math.sqrt(value / maxValue)
 }
 
+// 카카오맵 SDK 로더
+/** window.kakaoMapsPromise 싱글턴으로 중복 script 삽입을 방지한다. */
 function loadKakaoMaps(appKey) {
   if (window.kakao?.maps?.Map) return Promise.resolve(window.kakao)
   if (window.kakaoMapsPromise) return window.kakaoMapsPromise
@@ -273,6 +305,8 @@ function loadKakaoMaps(appKey) {
   return window.kakaoMapsPromise
 }
 
+// KakaoMetroMap – 지도 캔버스
+// 오버레이(Circle + CustomOverlay) 생성·교체, 줌·이동 이벤트, 화면 내 역 계산을 담당한다.
 function KakaoMetroMap({
   boarding,
   onMapReady,
@@ -296,7 +330,7 @@ function KakaoMetroMap({
   const [showZoomToast, setShowZoomToast] = useState(false)
   const [zoomToastKey, setZoomToastKey] = useState(0)
   const toastTimeoutRef = useRef(null)
-  const isProgrammaticRef = useRef(false)
+  const isProgrammaticRef = useRef(false)  // setBounds 등 코드에서 줌할 때 toast를 억제하기 위한 플래그
 
   const triggerZoomToast = useCallback(() => {
     setShowZoomToast(true)
@@ -315,6 +349,7 @@ function KakaoMetroMap({
     }
   }, [])
 
+  // 지도 SDK 초기화 (앱 수명 중 1회)
   useEffect(() => {
     if (!KAKAO_MAP_KEY) {
       return undefined
@@ -347,6 +382,7 @@ function KakaoMetroMap({
     }
   }, [])
 
+  // 필터·페이지 변경 시 오버레이(Circle + Label + Pin) 전체 교체
   useEffect(() => {
     if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return undefined
 
@@ -517,7 +553,7 @@ function KakaoMetroMap({
     selectedStationIdRef.current = selectedStationId
   }, [selectedStationId])
 
-  // Fit map bounds when pageIds (filters or rank bar page) changes, including selected station
+  // pageIds 변경 시 해당 역들이 보이도록 지도 뷰를 자동 이동
   useEffect(() => {
     if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps || !pageIds || pageIds.length === 0) return
 
@@ -547,7 +583,7 @@ function KakaoMetroMap({
     }
   }, [loadState, pageIds, stationMetrics])
 
-  // Relayout map when dashboard opens or closes (selectedStationId changes)
+  // 대시보드 열림/닫힘 시 지도 사이즈 재계산
   useEffect(() => {
     if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return
 
@@ -566,7 +602,6 @@ function KakaoMetroMap({
     }
   }, [loadState, selectedStationId])
 
-  // viewport bounds 변경 및 화면 내 역 필터링을 위한 Ref 설정
   const stationMetricsRef = useRef(stationMetrics)
   useEffect(() => {
     stationMetricsRef.current = stationMetrics
@@ -577,7 +612,7 @@ function KakaoMetroMap({
     onVisibleStationsChangeRef.current = onVisibleStationsChange
   }, [onVisibleStationsChange])
 
-  // zoom_changed: toggle map-zoomed-out class to hide non-prominent labels when zoomed out
+  // 줌 레벨 상한(9) 초과 방지 및 레이블 표시 기준 제어
   useEffect(() => {
     if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return undefined
 
@@ -605,7 +640,7 @@ function KakaoMetroMap({
     }
   }, [loadState, triggerZoomToast])
 
-  // idle 이벤트 리스너 등록
+  // 지도 이동 완료(idle) 후 화면 내 visible 역 목록 갱신
   useEffect(() => {
     if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return undefined
 
@@ -639,7 +674,7 @@ function KakaoMetroMap({
     }
   }, [loadState])
 
-  // stationMetrics 변경 시에도 즉각 화면 내 역 계산
+  // 필터 변경으로 stationMetrics가 바뀌면 즉시 화면 내 역 목록 재계산
   useEffect(() => {
     if (loadState !== 'ready' || !mapRef.current || !window.kakao?.maps) return
 
@@ -685,8 +720,11 @@ function KakaoMetroMap({
 }
 
 function App() {
+  // 순위 바 페이지네이션 & 역 선택
   const [rankPage, setRankPage] = useState(0)
   const [selectedStationId, setSelectedStationId] = useState(null)
+
+  // 필터 상태
   const [timeRange, setTimeRange] = useState([6, 24])
   const [passengerRange, setPassengerRange] = useState([0, PASSENGER_RANGE_MAX])
   const [weekday, setWeekday] = useState('전체')
@@ -694,9 +732,13 @@ function App() {
   const [activeTypes, setActiveTypes] = useState(() => new Set(USER_TYPES))
   const [activeLines, setActiveLines] = useState(() => new Set(LINES))
   const [selectedPreset, setSelectedPreset] = useState('사용자 정의')
+
+  // 지도 UI 상태
   const [tooltip, setTooltip] = useState(null)
   const [visibleStationIds, setVisibleStationIds] = useState(null)
   const [activeMetricMode, setActiveMetricMode] = useState(null)
+
+  // 순위 네비게이션 bounce 방지
   const [rankNavBlocked, setRankNavBlocked] = useState(false)
   const navBlockTimerRef = useRef(null)
 
@@ -914,6 +956,7 @@ function App() {
   )
 }
 
+// 레이아웃 & 필터 UI – Navigation / Sidebar / DualRange / ChoiceSection
 function Navigation() {
   return (
     <nav className="nav">
@@ -1108,7 +1151,6 @@ function Sidebar({
   )
 }
 
-
 function DualRange({ max, min, onChange, step, values, disabled }) {
   const [start, end] = values
   const left = ((start - min) / (max - min)) * 100
@@ -1139,7 +1181,7 @@ function ChoiceSection({ label, onChange, options, value, disabled }) {
   )
 }
 
-
+// 역 검색 박스
 function StationSearchBox({ stationMetrics, onSelect }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -1218,6 +1260,7 @@ function StationSearchBox({ stationMetrics, onSelect }) {
   )
 }
 
+// MapPanel – 지도 + 순위 바 컨테이너
 function MapPanel({
   boarding,
   onMapInstanceReady,
@@ -1315,6 +1358,7 @@ function MapPanel({
   )
 }
 
+// Dashboard – 선택 역 상세 패널
 const CHART_BOARDING_COLORS = { '전체': '#3B6DFF', '승차': '#10B981', '하차': '#F97316' }
 
 function Dashboard({ activeMetricMode, filters, navigateToStation, navigatedStationName, onClose, ranked, selectedStation, stationMetrics }) {
@@ -1481,6 +1525,7 @@ function Dashboard({ activeMetricMode, filters, navigateToStation, navigatedStat
   )
 }
 
+// 대시보드 서브 컴포넌트 – HourlyChart / StationSummary / AgePie / BoardingRatioBar / SimilarStations
 function HourlyChart({ chartColor = '#3B6DFF', hourlyValues, onHoverChange }) {
   const [hoveredIdx, setHoveredIdx] = useState(null)
 
@@ -1910,6 +1955,7 @@ function SimilarStations({ navigateToStation, navigatedStationName, station }) {
   )
 }
 
+// Tooltip – 지도 마커 마우스 오버 카드
 function Tooltip({ activeMetricMode, ranked, selectedStation, tooltip }) {
   if (!tooltip) return <div className="tt" />
 
