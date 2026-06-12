@@ -130,6 +130,19 @@ button {
   white-space: pre-wrap;
 }
 
+.nav-info-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3B6DFF;
+  text-decoration: none;
+}
+
+.nav-info-link:hover {
+  text-decoration: underline;
+}
+
 .main {
   display: flex;
   flex: 1;
