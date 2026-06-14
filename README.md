@@ -1,224 +1,223 @@
 # StationGo
 
-2025년 서울 지하철(1~8호선) 승하차 데이터를 인터랙티브하게 탐색할 수 있는 데이터 시각화 웹 서비스입니다.  
-시간대 및 주말/평일, 호선, 승객 유형, 승객 수 범위를 조절하며 지도 위에서 직관적으로 승객 수를 비교할 수 있습니다. 또한 피크 집중형/안정형 비교가 가능합니다.
-특정 역을 클릭하면 시간대별 패턴과 연령대 분포, 유사역 등 세부 정보를 확인할 수 있습니다.
+An interactive data visualization web service for exploring Seoul subway (Lines 1–8) boarding and alighting data from 2025.
+You can compare passenger counts intuitively on a map by adjusting time slots, weekday/weekend, line, passenger type, and passenger count range. Peak-concentration and stable-pattern comparisons are also available.
+Clicking a specific station reveals detailed information including time-slot patterns, age group distributions, and similar stations.
 
 ---
 
-## 프로젝트 배경 및 목적
+## Project Background and Goals
 
-### 배경
+### Background
 
-공개된 승하차 데이터를 엑셀로 열어보면 알 수 있는 것은 결국 *"어느 역에 승객이 많은가"* 정도입니다. 분석하는 입장에서 조건을 바꿔가며 즉각적으로 데이터를 조작·탐색하기 어렵고, *"왜 그 역이 우리에게 중요한가"*에는 답하지 못합니다. 그 결과 매장 입지나 행사 장소를 정해야 하는 실무자들은 여전히 정적이거나 피상적인 데이터, 혹은 직관에 의존하게 됩니다.
+Opening the publicly available boarding/alighting data in Excel tells you little more than *"which station has the most passengers."* It is difficult to manipulate and explore data interactively by changing conditions, and it fails to answer *"why does that station matter to us."* As a result, practitioners who need to choose retail locations or event venues still rely on static, surface-level data or gut instinct.
 
-StationGo는 이를 겨냥합니다. 유사역·주말/평일 비교처럼 **분석 관점에서 실제로 필요한 파생 지표를 미리 생성**하고, 이를 **지도 위에 올려 상업적/지리적 해석이 가능**하도록 돕습니다.
+StationGo targets exactly this gap. It **pre-generates derivative metrics that are genuinely useful from an analytical perspective**—such as similar-station indices and weekday/weekend comparisons—and **overlays them on a map so that commercial and geographic interpretation becomes possible**.
 
-### 대상 사용자와 목표
+### Target Users and Goals
 
-- **대상 사용자** — 팝업스토어·프로모션 입지를 고민하는 **마케터**, 캠페인 동선을 설계하는 **정치 전략가** 등, 서울 지하철 이용 패턴을 전략적으로 탐색하려는 실무자
-- **사용자 니즈** — 사용자는 *자신만의 '타깃 승객 프로필(Target Passenger Profile)'* 을 설정하고(노선·시간대·승객 유형·이용량 범위), 그 조건에 맞는 역을 지도 위에서 직접 찾아낼 수 있어야 합니다.
-- **목표** — 과거 이용 데이터 패턴에 근거해 **잠재력이 높은 입지를 식별**함으로써, 직관이 아닌 근거에 기반한 비용 효율적 입지 선정을 돕는 **도시 전략 인텔리전스 엔진**을 제공합니다.
+- **Target users** — Practitioners who want to strategically explore Seoul subway usage patterns, including **marketers** evaluating pop-up store or promotional locations and **political strategists** designing campaign routes.
+- **User needs** — Users must be able to define their own *Target Passenger Profile* (line, time slot, passenger type, volume range) and directly locate matching stations on the map.
+- **Goal** — By identifying **high-potential locations based on historical usage patterns**, StationGo serves as an **urban-strategy intelligence engine** that enables evidence-based, cost-effective site selection rather than relying on intuition.
 
-### 왜 지도인가
+### Why a Map?
 
-필터·랭킹·상세 대시보드까지 한 화면에 담으면 정보량이 많아집니다. 그럼에도 지도를 핵심 장치로 택한 이유는, **입지 선정이 본질적으로 지리적 의사결정**이기 때문입니다. 주변 상권, 접근성, 인접 역과의 관계 같은 **지리적 맥락 위에서 읽어야 데이터가 비로소 해석**됩니다. 표나 차트만으로는 사라지는 이 맥락을, 지도는 '위치'라는 하나의 축으로 자연스럽게 통합해 줍니다.
+Combining filters, rankings, and a detailed dashboard on one screen creates a high information density. Even so, the map was chosen as the core interface because **site selection is inherently a geographic decision**. Data only becomes interpretable when read in the context of **geographic surroundings**—nearby commercial districts, accessibility, and relationships with adjacent stations. Context that disappears in tables or charts alone is naturally unified by a map through the single axis of *location*.
 
-### 차별점 (Novelty)
+### Novelty
 
-- **What → Why로의 전환** — 대부분의 시스템이 *특정 역에서 무슨 일이 일어나는지*를 보여준다면, StationGo는 **유사역 지수(Station Similarity Index)** 로 *왜 그 역이 의미 있는지*, 어떤 역이 그와 닮았는지를 설명합니다.
-- **이용 '패턴'으로 닮은 역 찾기**  — 단순 이용량이 아니라 *이용 패턴의 모양*이 닮은 역을 찾습니다. 각 역을 (평일/주말 × 승차/하차 × 승객 유형)별 시간대 이용 벡터로 표현하고, 도시 전체 평균 대비 **편차를 임베딩으로 결합**한 뒤 **코사인 유사도**로 가장 닮은 상위 5개 역을 도출합니다(실제 서비스에서는 3개만 표기). 이는 표준 대중교통 앱에는 없는 분석 레이어입니다.
-- **데이터 한계의 가시화** — 전처리 과정에서 외국인 승객 분류의 불안정성, 역명 변경에 따른 병합 불일치 등 공공 데이터의 간극을 발견했습니다. StationGo는 이러한 한계를 숨기지 않고 드러내, 사용자가 지표의 신뢰도까지 함께 판단할 수 있도록 진단 역할을 겸합니다.
-
----
-
-## 주요 기능
-
-- **지도 기반 탐색** — 카카오맵 위에 역별 지표를 원 크기로 표시, 줌 레벨에 따라 자동 필터링. 확대 시(줌 레벨 낮춤) 랭킹 밖 역 비교 및 클릭 가능
-- **필터 패널** — 노선, 이용자 유형(일반/어린이/청소년/노인), 시간대, 승하차 구분, 승차량 범위를 조합해 필터링
-- **랭킹 뷰** — 현재 필터 기준 상위 역을 페이지네이션으로 탐색 -> 화면이 복잡해지는 것을 막음. 이 때 탐색 지역 랭킹(Local Top)과 탐색 랭킹(중앙 하단) 구분
-- **역 상세 대시보드** — 간략한 요약 제공, 시간대별 차트, 연령대 파이 차트, 탑승 비율 바, 유사 역 목록
-- **프리셋** — 출근 시간·퇴근 시간·주말 등 자주 쓰는 필터 조합을 한 번에 적용
-- **역 검색** — 역 이름으로 빠르게 검색 후 지도 이동
+- **Shifting from What to Why** — While most systems show *what is happening at a given station*, StationGo uses a **Station Similarity Index** to explain *why that station is meaningful* and which stations resemble it.
+- **Finding Similar Stations by Usage Pattern** — Rather than raw volume, it finds stations whose *shape of usage pattern* is similar. Each station is represented as a time-slot usage vector broken down by (weekday/weekend × boarding/alighting × passenger type), deviation from the city-wide average is combined into an embedding, and **cosine similarity** is used to derive the top-5 most similar stations (only top 3 are shown in the live service). This is an analytical layer absent from standard public-transit apps.
+- **Making Data Limitations Visible** — During preprocessing, gaps in public data were discovered—such as instability in foreign-passenger classification and merge mismatches caused by station name changes. StationGo surfaces these limitations rather than hiding them, so users can also evaluate the reliability of each metric.
 
 ---
 
-## 사용 방법
+## Key Features
 
-### 1. 원본 데이터 파일 추가(2025)
+- **Map-based exploration** — Station metrics displayed as circle sizes on Kakao Maps, with automatic filtering based on zoom level. Zooming in (lower zoom level) enables comparison and clicking of stations outside the ranking.
+- **Filter panel** — Filter by combining line, user type (general / child / youth / senior), time slot, boarding/alighting direction, and passenger volume range.
+- **Ranking view** — Browse top stations under the current filter via pagination, preventing screen clutter. Distinguishes between Local Top (for the browsed area) and overall ranking (center-bottom).
+- **Station detail dashboard** — Brief summary, time-slot chart, age-group pie chart, boarding ratio bar, and similar-station list.
+- **Presets** — Apply frequently used filter combinations (rush hour, evening peak, weekend, etc.) in a single click.
+- **Station search** — Quickly search by station name and pan the map to that station.
 
-아래 링크에서 `final_merged_weekly_nonzero.csv`를 다운로드한 뒤 `src/data/` 폴더에 넣어주세요.
+---
 
-- 다운로드: https://drive.google.com/file/d/1mq6Vc7YKdPVo1Jl2eCVi1dr1__xe6iKx/view?usp=sharing
+## How to Use
+
+### 1. Add the Raw Data File (2025)
+
+Download `final_merged_weekly_nonzero.csv` from the link below and place it in the `src/data/` folder.
+
+- Download: https://drive.google.com/file/d/1mq6Vc7YKdPVo1Jl2eCVi1dr1__xe6iKx/view?usp=sharing
 
 ```
 src/
 └── data/
-    └── final_merged_weekly_nonzero.csv  ← 여기에 배치
+    └── final_merged_weekly_nonzero.csv  ← place it here
 ```
 
-> **데이터를 교체할 경우 반드시 `src/data/passenger_summary.json`을 삭제하세요.**  
-> `npm run dev` / `npm run build` 실행 시 전처리 스크립트(`preprocess.mjs`)가 자동으로 실행되어 `passenger_summary.json`을 새로 생성하는데, 기존 파일이 남아 있으면 이전 데이터가 그대로 사용됩니다.
+> **If you replace the data file, you must delete `src/data/passenger_summary.json`.**
+> When you run `npm run dev` / `npm run build`, the preprocessing script (`preprocess.mjs`) runs automatically and regenerates `passenger_summary.json`. If the old file remains, the previous data will be used as-is.
 
-### 2. 패키지 설치
+### 2. Install Packages
 
 ```bash
 npm install
 ```
 
-### 3. 환경 변수 설정 (지도 표시에 필수)
+### 3. Set Environment Variables (required for map display)
 
-`.env.example`을 복사해 `.env.local`을 만들고 카카오 지도 앱 키를 입력합니다.
+Copy `.env.example` to create `.env.local` and enter your Kakao Maps app key.
 
 ```bash
 cp .env.example .env.local
-# .env.local 파일에서 VITE_KAKAO_MAP_KEY 값을 입력
+# Enter the value for VITE_KAKAO_MAP_KEY in .env.local
 ```
 
-카카오 개발자 콘솔(https://developers.kakao.com)에서 JavaScript 앱 키를 발급받을 수 있습니다.
+A JavaScript app key can be issued from the Kakao Developer Console (https://developers.kakao.com).
 
-### 4. 개발 서버 실행
+### 4. Run the Development Server
 
 ```bash
 npm run dev
 ```
 
-브라우저에서 http://localhost:5173 으로 접속합니다.  
-첫 실행 시 전처리 스크립트가 CSV를 읽어 `passenger_summary.json`을 자동 생성합니다.
+Open http://localhost:5173 in your browser.
+On the first run, the preprocessing script reads the CSV and auto-generates `passenger_summary.json`.
 
-### 5. 프로덕션 빌드
+### 5. Production Build
 
 ```bash
 npm run build
-npm run preview   # 빌드 결과물 로컬 미리보기
+npm run preview   # Local preview of the build output
 ```
 
 ---
 
-## 데이터 요약
+## Data Summary
 
-### 원본 데이터
+### Source Data
 
-서울교통공사에서 공개하는 1_8호선 역별 일별 시간대별 승객유형별 승하차인원 데이터를 기반으로 합니다.  
+Based on the per-station, per-day, per-time-slot, per-passenger-type boarding/alighting data for Lines 1–8 published by Seoul Metro.
 
+| Item | Details |
+|------|---------|
+| Source | Seoul Metro Public Data |
+| Scope | All stations on Lines 1–8 |
+| Direction | Boarding / Alighting |
+| Time slots | 00:00 – 24:00 (1-hour intervals) |
+| Passenger types | General, Child, Youth, Middle/High School Student, Senior, Staff, Foreign (English / Japanese / Chinese) |
 
-| 항목 | 내용 |
+### Preprocessing Decisions
+
+**Weekly aggregation**
+The source data is daily. To reduce day-of-week variance and data size, it has been summarized at the weekly level in the form of `Month N, Week M Weekday/Weekend`.
+
+**Merging foreign-passenger counts**
+Foreign passenger counts are unstable as a separate aggregate (recorded only at certain stations and time slots), so they have been merged into the general passenger category for type classification.
+
+**Removing Staff and Middle/High School Student types**
+Staff is excluded because they are not actual fare-paying passengers. Middle/high school students and youth overlap significantly in benefit eligibility, and since "youth" is the more general category, middle/high school student data is merged into youth.
+(Youth += Middle/High School Student)
+
+**Merging pre-06:00 time slots**
+The 00:00–05:00 window has very few train services, so data is absent or extremely sparse at most stations.
+Providing these as individual time slots would result in excessive empty intervals, so they have been consolidated into a single `pre-06:00` bucket.
+This bucket is excluded from display in the in-app visualization.
+
+**Removing missing and zero values**
+Records with zero passenger counts have all been removed; the final input file is `final_merged_weekly_nonzero.csv`, with `nonzero` explicit in the filename.
+
+### Datasets Used
+
+#### `final_merged_weekly_nonzero.csv` — Weekly boarding/alighting aggregate (~1.2M records)
+
+The final input file generated from Seoul Metro source data after the preprocessing steps above.
+
+| Column | Format | Range / Example |
+|--------|--------|-----------------|
+| `날짜` | String | `1월 1주차 평일` – `6월 말 주말` |
+| `호선` | String | `1호선` – `8호선` |
+| `역명` | String | Station name (e.g., `강남`, `홍대입구`) |
+| `역번호` | Integer | Seoul Metro station code (e.g., `222`) |
+| `구분` | Category | `승차` / `하차` (Boarding / Alighting) |
+| `주말구분` | Category | `평일` / `주말` (Weekday / Weekend) |
+| `시간대` | Category | `06시간대이전`, `06-07시간대` … `23-24시간대` |
+| `이용객수_노인` | Float | Senior-discount ridership for the time slot |
+| `이용객수_어린이` | Float | Child ridership |
+| `이용객수_외국인` | Float | Foreign ridership (consolidated) |
+| `이용객수_일반` | Float | General ridership |
+| `이용객수_직원` | Float | Staff ridership |
+| `이용객수_청소년` | Float | Youth ridership (includes middle/high school students) |
+| `이용객수_전체` | Float | Sum of all types above |
+| `위도` / `경도` | Float | Station coordinates (e.g., `37.498`, `127.028`) |
+
+> Records with zero passenger counts have been removed (`nonzero`).
+
+---
+
+#### `station_info.csv` — Station Metadata (239 stations)
+
+Based on the Seoul Metro **Station Master** data, this file consolidates coordinates, line information, and similar-station data for Lines 1–8 stations appearing in the boarding/alighting dataset.
+
+The following two cases have been merged into a single row:
+
+- **Station name changes** — Stations where an official sub-name was added or changed (e.g., `삼각지(전쟁기념관)` → `삼각지`, `총신대입구(이수)` → `이수`)
+- **Multiple lines sharing the same location** — Physically identical locations with different line codes (e.g., `가락시장` belongs to both Line 3 and Line 8) → Multiple values separated by `/` in the `호선` and `역번호` columns.
+
+| Column | Format | Range / Example |
+|--------|--------|-----------------|
+| `기준역` | String | Unified representative station name (e.g., `가락시장`, `강남`) |
+| `호선` | String | Single (`2호선`) or multiple (`3호선/8호선`) |
+| `역번호` | String | Single (`222`) or multiple (`340/2818`) |
+| `x` | Float | Longitude (e.g., `127.118077`) |
+| `y` | Float | Latitude (e.g., `37.492566`) |
+| `유사역_1` – `유사역_3` | String | Names of stations with similar usage patterns (up to 3) |
+
+---
+
+## Data Preprocessing Structure
+
+`scripts/preprocess.mjs` reads `final_merged_weekly_nonzero.csv` and converts it to `src/data/passenger_summary.json`.
+It is registered in the `predev` / `prebuild` hooks to run automatically before `npm run dev` and `npm run build`.
+
+| File | Role |
 |------|------|
-| 출처 | 서울교통공사 공공데이터 |
-| 대상 | 1~8호선 전 역 |
-| 구분 | 승차 / 하차|
-| 시간대 | 00시 ~ 24시 (1시간 단위) |
-| 승객 유형 | 일반, 어린이, 청소년, 중고생, 노인, 직원, 외국인(영어, 일어 중국어) |
-
-### 전처리 결정 사항
-
-**주차 단위 집계**  
-원본은 날짜(일) 단위이나, 요일 편차를 줄이고 데이터 크기를 낮추기 위해 `N월 M주차 평일/주말` 형태로 주차 단위 요약하였습니다.
-
-**외국인 승객 통합**  
-외국인 승객 수는 별도 집계가 불안정하여(특정 역·시간대에만 기록) 유형 분류 시 일반 승객 범주에 통합하였습니다.
-
-**직원, 중고생 삭제**
-직원 유형은 실제 승객이 아니기에 제외합니다. 또 중고생과 청소년은 구분되지만 혜택범위 대상이 많이 겹치고, 청소년이 더 일반적인 범주이기에 청소년 데이터로 통합시킵니다.
-(청소년 += 중고생)
-
-**06시 이전 시간대 통합**  
-00~05시 구간은 운행 편수 자체가 적어 대부분의 역에서 데이터가 없거나 극히 적습니다.  
-이를 개별 시간대로 제공하면 빈 구간이 과도하게 나타나 `06시간대이전` 단일 버킷으로 통합하였습니다.  
-앱 내 시각화에서는 이 구간을 표시에서 제외합니다.
-
-**결측·0값 제거**  
-이용객수가 0인 레코드는 모두 제거하여 파일명에 `nonzero`가 명시된 `final_merged_weekly_nonzero.csv`를 최종 입력 파일로 사용합니다.
-
-### 사용 데이터셋
-
-#### `final_merged_weekly_nonzero.csv` — 주간 승하차 집계 (약 120만 레코드)
-
-서울교통공사 원본 데이터에서 위 전처리 과정을 거쳐 생성된 최종 입력 파일입니다.
-
-| 컬럼 | 형식 | 값 범위 / 예시 |
-|------|------|----------------|
-| `날짜` | 문자열 | `1월 1주차 평일` ~ `6월 말 주말` |
-| `호선` | 문자열 | `1호선` ~ `8호선` |
-| `역명` | 문자열 | 역 이름 (예: `강남`, `홍대입구`) |
-| `역번호` | 정수 | 서울교통공사 역 코드 (예: `222`) |
-| `구분` | 범주 | `승차` / `하차` |
-| `주말구분` | 범주 | `평일` / `주말` |
-| `시간대` | 범주 | `06시간대이전`, `06-07시간대` … `23-24시간대` |
-| `이용객수_노인` | 실수 | 해당 시간대 노인 우대권 이용객 수 |
-| `이용객수_어린이` | 실수 | 어린이 이용객 수 |
-| `이용객수_외국인` | 실수 | 외국인 이용객 수 (통합 집계) |
-| `이용객수_일반` | 실수 | 일반 이용객 수 |
-| `이용객수_직원` | 실수 | 직원 이용객 수 |
-| `이용객수_청소년` | 실수 | 청소년 이용객 수 (중고생 포함) |
-| `이용객수_전체` | 실수 | 위 유형의 합계 |
-| `위도` / `경도` | 실수 | 역 좌표 (예: `37.498`, `127.028`) |
-
-> 이용객수가 0인 레코드는 제거되어 있습니다 (`nonzero`).
+| `final_merged_weekly_nonzero.csv` | Raw weekly boarding/alighting data (not in git — requires separate download) |
+| `src/data/passenger_summary.json` | Preprocessing output (auto-generated, included in git) |
+| `src/data/station_info.csv` | Static station coordinate and line metadata |
+| `src/data/station_peak_concentration_stability.csv` | Derived congestion and stability metrics |
 
 ---
 
-#### `station_info.csv` — 역 메타데이터 (239개 역)
+## Tech Stack
 
-서울교통공사 **역사마스터** 정보를 기반으로, 승하차 데이터에 등장하는 1~8호선 역의 좌표·노선·유사역 정보를 정리한 파일입니다.
-
-아래 두 경우를 하나의 행으로 통합하였습니다.
-
-- **역명 변경** — 공식 부역명이 추가되거나 바뀐 역 (예: `삼각지(전쟁기념관)` → `삼각지`, `총신대입구(이수)` → `이수`)
-- **복수 노선 공유** — 물리적으로 같은 위치이나 호선 코드가 다른 경우 (예: `가락시장`은 3호선·8호선 모두 해당) → `호선`과 `역번호` 컬럼에 `/` 로 구분하여 병기
-
-| 컬럼 | 형식 | 값 범위 / 예시 |
-|------|------|----------------|
-| `기준역` | 문자열 | 통합 대표 역명 (예: `가락시장`, `강남`) |
-| `호선` | 문자열 | 단일(`2호선`) 또는 복수(`3호선/8호선`) |
-| `역번호` | 문자열 | 단일(`222`) 또는 복수(`340/2818`) |
-| `x` | 실수 | 경도 (예: `127.118077`) |
-| `y` | 실수 | 위도 (예: `37.492566`) |
-| `유사역_1` ~ `유사역_3` | 문자열 | 이용 패턴이 유사한 역 이름 (최대 3개) |
+| Technology | Reason for Choice |
+|------------|-------------------|
+| **React 19 + Vite** | Component-based UI composition and convenient state management. Vite provides fast HMR. |
+| **Zustand** | Manages global filter state (line, time slot, selected station, etc.) concisely without the boilerplate of Redux. |
+| **react-leaflet / Leaflet** | Open-source map library. Leaflet's custom layer functionality is used to directly wrap the Kakao Maps SDK. |
+| **Recharts** | Declaratively composes dashboard charts such as time-slot line charts and age-group pie charts. |
+| **Lucide React** | Consistent SVG icon set. Small bundle size with tree-shaking support. |
+| **Kakao Maps SDK** | Adopted to accurately display Seoul subway station locations within a Korean map context. |
 
 ---
 
-## 데이터 전처리 구조
-
-`scripts/preprocess.mjs`가 `final_merged_weekly_nonzero.csv`를 읽어 `src/data/passenger_summary.json`으로 변환합니다.  
-`npm run dev` 및 `npm run build` 전에 자동 실행되도록 `predev` / `prebuild` 훅에 등록되어 있습니다.
-
-| 파일 | 역할 |
-|------|------|
-| `final_merged_weekly_nonzero.csv` | 원본 주간 승하차 데이터 (git 미포함, 별도 다운로드 필요) |
-| `src/data/passenger_summary.json` | 전처리 결과물 (자동 생성, git 포함) |
-| `src/data/station_info.csv` | 역 좌표·노선 정적 메타데이터 |
-| `src/data/station_peak_concentration_stability.csv` | 혼잡도·안정성 파생 지표 |
-
----
-
-## 기술 스택
-
-| 기술 | 선택 이유 |
-|------|-----------|
-| **React 19 + Vite** | 컴포넌트 기반 UI 구성과 상태 관리 편의성. Vite로 HMR 속도를 확보 |
-| **Zustand** | Redux 대비 보일러플레이트 없이 전역 필터 상태(노선·시간대·선택 역 등)를 간결하게 관리 |
-| **react-leaflet / Leaflet** | 오픈소스 지도 라이브러리. 카카오맵 SDK를 직접 래핑하기 위해 Leaflet의 커스텀 레이어 기능 활용 |
-| **Recharts** | 시간대별 꺾은선 차트, 연령대 파이 차트 등 대시보드 차트를 선언적으로 구성 |
-| **Lucide React** | 일관된 SVG 아이콘 세트. 번들 크기가 작고 트리쉐이킹 지원 |
-| **Kakao Maps SDK** | 서울 지하철 역 위치를 한국 지도 맥락에서 정확하게 표시하기 위해 채택 |
-
----
-
-## 프로젝트 구조
+## Project Structure
 
 ```
 StationGo/
 ├── scripts/
-│   └── preprocess.mjs        # CSV → JSON 전처리 스크립트
+│   └── preprocess.mjs        # CSV → JSON preprocessing script
 ├── src/
-│   ├── App.jsx                # 전체 레이아웃 및 컴포넌트 (지도, 사이드바, 대시보드)
+│   ├── App.jsx                # Overall layout and components (map, sidebar, dashboard)
 │   ├── data/
-│   │   ├── loaders.js                              # 데이터 로딩 유틸
-│   │   ├── passenger_summary.json                  # 전처리 결과 (자동 생성)
-│   │   ├── station_info.csv                        # 역 메타데이터
+│   │   ├── loaders.js                              # Data loading utilities
+│   │   ├── passenger_summary.json                  # Preprocessing output (auto-generated)
+│   │   ├── station_info.csv                        # Station metadata
 │   │   └── station_peak_concentration_stability.csv
-│   └── assets/               # 랭킹 뱃지 이미지 등 정적 자산
+│   └── assets/               # Static assets such as ranking badge images
 ├── index.html
 ├── vite.config.js
 └── package.json
